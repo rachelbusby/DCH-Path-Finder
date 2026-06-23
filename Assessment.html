@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT Workforce PathFinder</title>
+<style>
+body{font-family:Arial;background:#f4f6f9;color:#222;margin:0;padding:20px}
+.shell{max-width:740px;margin:auto}
+.card{background:#fff;border:1px solid #dde2ea;border-radius:8px;padding:22px;margin-bottom:16px}
+h2{color:#1F4E79}
+.btn{padding:10px 18px;border:none;border-radius:6px;background:#1F4E79;color:#fff;cursor:pointer}
+.step{display:none}
+.step.active{display:block}
+input,textarea{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:6px}
+.radio-row{margin:6px 0}
+</style>
+</head>
+<body>
+<div class="shell">
+<h2>IT Workforce PathFinder</h2>
+<p>This assessment helps leadership understand your skills and interests across technical and operational areas. Complete as much or as little as you'd like.</p>
+
+<div id="step-0" class="card step active">
+<h3>About You</h3>
+<input placeholder="Full name">
+<input placeholder="Current role">
+<input placeholder="Team">
+<button class="btn" onclick="goTo(1)">Next</button>
+</div>
+
+<div id="step-1" class="card step">
+<h3>Skills (Optional)</h3>
+<p>Select a level if applicable</p>
+<div class="radio-row">System Configuration: 
+<label><input type="radio" name="s1">1</label>
+<label><input type="radio" name="s1">2</label>
+<label><input type="radio" name="s1">3</label>
+<label><input type="radio" name="s1">4</label>
+<label><input type="radio" name="s1">5</label>
+</div>
+<div class="radio-row">Data Analysis:
+<label><input type="radio" name="s2">1</label>
+<label><input type="radio" name="s2">2</label>
+<label><input type="radio" name="s2">3</label>
+<label><input type="radio" name="s2">4</label>
+<label><input type="radio" name="s2">5</label>
+</div>
+<button class="btn" onclick="goTo(2)">Next</button>
+</div>
+
+<div id="step-2" class="card step">
+<h3>Interests</h3>
+<textarea placeholder="What type of roles or work are you interested in?"></textarea>
+<button class="btn" onclick="goTo(3)">Next</button>
+</div>
+
+<div id="step-3" class="card step">
+<h3>Additional Info</h3>
+<textarea placeholder="What are your strengths?"></textarea>
+<textarea placeholder="Anything else?"></textarea>
+<button class="btn" onclick="goTo(4)">Finish</button>
+</div>
+
+<div id="step-4" class="card step">
+<h3>Complete</h3>
+<p>Your responses can now be reviewed ✅</p>
+</div>
+</div>
+
+<script>
+function goTo(step){
+ document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+ document.getElementById('step-'+step).classList.add('active');
+}
+</script>
+</body>
+</html>
