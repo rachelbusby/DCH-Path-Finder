@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPSS PathFinder — Leadership Decoder</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:14px;background:#f0f4f8;color:#222;min-height:100vh}
+.shell{max-width:980px;margin:0 auto;padding:24px 16px 60px}
+.header{background:#1F4E79;color:#fff;border-radius:8px;padding:24px 28px;margin-bottom:20px}
+.header h1{font-size:20px;font-weight:700;margin-bottom:6px}
+.header p{font-size:13px;opacity:.85;line-height:1.6}
+.card{background:#fff;border:1px solid #dde2ea;border-radius:8px;padding:22px 24px;margin-bottom:16px}
+.card h2{font-size:13px;font-weight:700;color:#1F4E79;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em;padding-bottom:8px;border-bottom:1px solid #eef0f4}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.step-box{background:#EBF3FC;border:1px solid #B5D4F4;border-radius:7px;padding:14px 16px}
+.step-box .num{font-size:20px;font-weight:700;color:#1F4E79;margin-bottom:4px}
+.step-box p{font-size:12px;color:#1F4E79;line-height:1.5}
+.paste-area{width:100%;min-height:160px;border:1px solid #cdd3dc;border-radius:6px;padding:10px 12px;font-family:'Courier New',monospace;font-size:11px;color:#333;resize:vertical;background:#fafafa}
+.paste-area:focus{outline:none;border-color:#2E75B6}
+.btn{padding:10px 22px;border-radius:6px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;transition:background .1s}
+.btn-primary{background:#1F4E79;color:#fff}.btn-primary:hover{background:#173d63}
+.btn-secondary{background:#fff;color:#1F4E79;border:1px solid #2E75B6}.btn-secondary:hover{background:#EBF3FC}
+.btn-green{background:#1D9E75;color:#fff}.btn-green:hover{background:#15785a}
+.status-bar{background:#EBF3FC;border:1px solid #B5D4F4;border-radius:6px;padding:10px 14px;font-size:12px;color:#0C447C;margin-top:12px;display:none;line-height:1.6}
+.status-bar.error{background:#FCEBEB;border-color:#F7C1C1;color:#A32D2D}
+.status-bar.success{background:#C8EEE0;border-color:#5DCAA5;color:#085041}
+.preview-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}
+.preview-table th{background:#1F4E79;color:#fff;padding:7px 10px;text-align:left;font-size:11px;white-space:nowrap}
+.preview-table td{padding:6px 10px;border-bottom:1px solid #eef0f4;vertical-align:top}
+.preview-table tr:nth-child(even) td{background:#f7f9fc}
+.score-pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700}
+.s-green{background:#C8EEE0;color:#085041}.s-yellow{background:#FDE9BE;color:#633806}
+.s-orange{background:#FBDDD3;color:#712B13}.s-red{background:#F7C1C1;color:#A32D2D}
+.remove-btn{background:none;border:none;color:#A32D2D;cursor:pointer;font-size:16px;padding:0 4px;line-height:1}
+.row-actions{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+#preview-section{display:none}
+#download-section{display:none;margin-top:16px}
+.download-box{background:#C8EEE0;border:1px solid #5DCAA5;border-radius:8px;padding:18px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.download-box .icon{font-size:32px}
+.download-box .text h3{font-size:15px;font-weight:700;color:#085041;margin-bottom:3px}
+.download-box .text p{font-size:12px;color:#0F6E56}
+@media(max-width:600px){.steps{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<div class="header">
+  <h1>EPSS Staff PathFinder &mdash; Leadership Decoder</h1>
+  <p>Enterprise Portfolio Support &nbsp;&middot;&nbsp; Deputy CIO — Rick Anderson &nbsp;&middot;&nbsp; Roles scoped to the EPSS org chart (manager level and below)<br>
+  Blended scoring: skill ratings 55% &nbsp;|&nbsp; open-text JD keyword match 30% &nbsp;|&nbsp; stated learning interests 15%. Each role assigned to one person only.</p>
+</div>
+
+<div class="steps">
+  <div class="step-box"><div class="num">1</div><p>Collect submission codes from staff via the EPSS PathFinder form</p></div>
+  <div class="step-box"><div class="num">2</div><p>Paste all codes below — one per line — and click Decode</p></div>
+  <div class="step-box"><div class="num">3</div><p>Review and download the Excel workbook for planning</p></div>
+</div>
+
+<div class="card">
+  <h2>Paste submission codes</h2>
+  <textarea class="paste-area" id="codes-input" placeholder="Paste codes here, one per line. Each code starts with EPSS_PATHFINDER_V4:"></textarea>
+  <div class="row-actions">
+    <button class="btn btn-primary" onclick="decodeAll()">Decode submissions</button>
+    <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+    <button class="btn btn-secondary" onclick="loadDemo()">Load demo data</button>
+  </div>
+  <div class="status-bar" id="status-bar"></div>
+</div>
+
+<div id="preview-section">
+  <div class="card">
+    <h2>Decoded submissions &nbsp;<span id="count-badge" style="font-size:11px;background:#DBEEFF;color:#0C447C;padding:2px 9px;border-radius:10px;font-weight:700;letter-spacing:0;text-transform:none"></span></h2>
+    <div style="overflow-x:auto">
+      <table class="preview-table" id="preview-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Name</th><th>Title / Team</th><th>Submitted</th>
+            <th>Skills rated</th><th>Openness</th>
+            <th>Best role match</th><th>2nd best</th><th>Self-identified target</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="preview-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div id="download-section">
+    <div class="download-box">
+      <div class="icon">&#8659;</div>
+      <div class="text">
+        <h3>Excel workbook ready</h3>
+        <p>Role scores, skill heatmap, learning interests, open-text responses &mdash; all tabs in one workbook</p>
+      </div>
+      <button class="btn btn-green" style="margin-left:auto" onclick="downloadExcel()">Download Excel workbook</button>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// SKILL IDs — must match staff form exactly, same order (43 total)
+// Step 1 (20): vendor_mgmt, procurement_admin, project_coord, pm_formal,
+//   portfolio_mgmt, requirements, process_mapping, qa_testing, policy_analysis,
+//   data_reporting, sop_writing, kb_mgmt, training_design, training_delivery,
+//   comms_writing, ocm, cms_cert, medicaid_ops, compliance_tracking, apd_reporting
+// Step 2 (23): mmis, gainwell_sys, edi_hipaa, gammis, gcp_mods, pm_tools,
+//   sharepoint, power_platform, itsm_tools, excel_advanced, sql_data, bi_tools,
+//   lms, elearning_tools, doc_mgmt, user_mgmt, iam_systems, change_mgmt_it,
+//   incident_mgmt, dual_env, cutover_support
+// Wait — let me recount step 2 from the form: 23 items
+// ═══════════════════════════════════════════════════════════════════════════
+const SKILL_IDS = [
+  // Step 1 — work skills (20)
+  'vendor_mgmt','procurement_admin','project_coord','pm_formal','portfolio_mgmt',
+  'requirements','process_mapping','qa_testing','policy_analysis','data_reporting',
+  'sop_writing','kb_mgmt','training_design','training_delivery','comms_writing','ocm',
+  'cms_cert','medicaid_ops','compliance_tracking','apd_reporting',
+  // Step 2 — systems & tools (23)
+  'mmis','gainwell_sys','edi_hipaa','gammis','gcp_mods',
+  'pm_tools','sharepoint','power_platform','itsm_tools',
+  'excel_advanced','sql_data','bi_tools',
+  'lms','elearning_tools','doc_mgmt',
+  'user_mgmt','iam_systems','change_mgmt_it','incident_mgmt','dual_env','cutover_support',
+  'siem_security_dummy','endpoint_dummy'
+];
+// NOTE: siem_security_dummy and endpoint_dummy are padding placeholders to align
+// with the form's 23-item step 2. Remove if step 2 is confirmed at 21.
+
+// Actually let me recount from the form HTML carefully:
+// step2 sections: Medicaid(5) + Program/Project(4) + Data(3) + Content/Learning(3) + Identity/Security(6) = 21
+// So step 2 = 21, total = 41
+const SKILL_IDS_FINAL = [
+  // Step 1 — work skills (20)
+  'vendor_mgmt','procurement_admin','project_coord','pm_formal','portfolio_mgmt',
+  'requirements','process_mapping','qa_testing','policy_analysis','data_reporting',
+  'sop_writing','kb_mgmt','training_design','training_delivery','comms_writing','ocm',
+  'cms_cert','medicaid_ops','compliance_tracking','apd_reporting',
+  // Step 2 — systems & tools (21)
+  'mmis','gainwell_sys','edi_hipaa','gammis','gcp_mods',
+  'pm_tools','sharepoint','power_platform','itsm_tools',
+  'excel_advanced','sql_data','bi_tools',
+  'lms','elearning_tools','doc_mgmt',
+  'user_mgmt','iam_systems','change_mgmt_it','incident_mgmt','dual_env','cutover_support',
+];
+
+const SKILL_NAMES = {
+  vendor_mgmt:'Vendor & contract management', procurement_admin:'Procurement administration',
+  project_coord:'Project coordination', pm_formal:'Formal project management (PMO)',
+  portfolio_mgmt:'Portfolio & strategic planning', requirements:'Business requirements',
+  process_mapping:'Process mapping & analysis', qa_testing:'QA & user acceptance testing',
+  policy_analysis:'Policy & regulatory analysis', data_reporting:'Data analysis & reporting',
+  sop_writing:'SOP & process documentation', kb_mgmt:'Knowledge base management',
+  training_design:'Training design & development', training_delivery:'Training facilitation & delivery',
+  comms_writing:'Stakeholder communications writing', ocm:'Organizational change management (OCM)',
+  cms_cert:'Federal certification & outcomes (CMS)', medicaid_ops:'Medicaid program operations',
+  compliance_tracking:'Regulatory compliance tracking', apd_reporting:'APD/federal funding documentation',
+  mmis:'MMIS', gainwell_sys:'Gainwell/legacy systems', edi_hipaa:'EDI & HIPAA transactions',
+  gammis:'GAMMIS', gcp_mods:'Georgia Care Connect modules',
+  pm_tools:'Project management platforms', sharepoint:'SharePoint',
+  power_platform:'Power Platform (Apps/Automate/BI)', itsm_tools:'ITSM tools (ServiceNow)',
+  excel_advanced:'Advanced Excel', sql_data:'SQL / database querying', bi_tools:'BI & visualization tools',
+  lms:'Learning management system (LMS)', elearning_tools:'E-learning authoring tools',
+  doc_mgmt:'Document management systems', user_mgmt:'User account & access management',
+  iam_systems:'IAM / SSO / MFA platforms', change_mgmt_it:'IT change management processes',
+  incident_mgmt:'IT incident & problem management', dual_env:'Parallel/dual-system operations',
+  cutover_support:'System go-live & cutover support',
+};
+
+const SKILL_CATS = {
+  vendor_mgmt:'Ops & Program Mgmt', procurement_admin:'Ops & Program Mgmt',
+  project_coord:'Ops & Program Mgmt', pm_formal:'Ops & Program Mgmt', portfolio_mgmt:'Ops & Program Mgmt',
+  requirements:'Business Analysis', process_mapping:'Business Analysis', qa_testing:'Business Analysis',
+  policy_analysis:'Business Analysis', data_reporting:'Business Analysis',
+  sop_writing:'Comms / Training / Knowledge', kb_mgmt:'Comms / Training / Knowledge',
+  training_design:'Comms / Training / Knowledge', training_delivery:'Comms / Training / Knowledge',
+  comms_writing:'Comms / Training / Knowledge', ocm:'Comms / Training / Knowledge',
+  cms_cert:'Federal & Compliance', medicaid_ops:'Federal & Compliance',
+  compliance_tracking:'Federal & Compliance', apd_reporting:'Federal & Compliance',
+  mmis:'Medicaid Systems', gainwell_sys:'Medicaid Systems', edi_hipaa:'Medicaid Systems',
+  gammis:'Medicaid Systems', gcp_mods:'Medicaid Systems',
+  pm_tools:'Program & Project Tools', sharepoint:'Program & Project Tools',
+  power_platform:'Program & Project Tools', itsm_tools:'Program & Project Tools',
+  excel_advanced:'Data & Reporting Tools', sql_data:'Data & Reporting Tools', bi_tools:'Data & Reporting Tools',
+  lms:'Content & Learning', elearning_tools:'Content & Learning', doc_mgmt:'Content & Learning',
+  user_mgmt:'IT Operations', iam_systems:'IT Operations', change_mgmt_it:'IT Operations',
+  incident_mgmt:'IT Operations', dual_env:'IT Operations', cutover_support:'IT Operations',
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ROLES — scoped to EPSS org chart, manager level and below
+// ═══════════════════════════════════════════════════════════════════════════
+const ROLES = [
+  // ── Operations Support branch ──
+  ['Vendor Performance & Contract Administration Manager',
+    {vendor_mgmt:5,procurement_admin:4,medicaid_ops:4,compliance_tracking:4,stakeholder:4,sop_writing:3,reporting:3,project_coord:3}],
+  ['M&O Sr Manager',
+    {medicaid_ops:5,vendor_mgmt:4,project_coord:4,compliance_tracking:4,sop_writing:3,process_mapping:3,requirements:3,pm_formal:3}],
+  ['Medicaid Compliance & Governance APD Manager',
+    {compliance_tracking:5,cms_cert:5,apd_reporting:5,medicaid_ops:4,sop_writing:4,policy_analysis:4,data_reporting:3,project_coord:3}],
+  ['Operational Reporting & Certifications Lead',
+    {cms_cert:5,data_reporting:5,compliance_tracking:4,apd_reporting:4,sop_writing:4,medicaid_ops:3,excel_advanced:4,bi_tools:3}],
+  ['Performance Mgmt Analyst',
+    {data_reporting:5,excel_advanced:4,bi_tools:4,compliance_tracking:3,sop_writing:3,medicaid_ops:3,sql_data:3,sharepoint:3}],
+  ['Procurement Admin',
+    {procurement_admin:5,vendor_mgmt:4,compliance_tracking:3,sop_writing:3,sharepoint:3,project_coord:3,medicaid_ops:2,itsm_tools:2}],
+  ['Financial Analyst',
+    {data_reporting:5,excel_advanced:5,sql_data:4,compliance_tracking:3,gainwell_sys:3,medicaid_ops:3,sop_writing:3,bi_tools:3}],
+  ['APD Administrator',
+    {apd_reporting:5,cms_cert:4,compliance_tracking:4,medicaid_ops:4,sop_writing:4,policy_analysis:3,data_reporting:3,project_coord:3}],
+  ['APD Compliance Specialist',
+    {compliance_tracking:5,apd_reporting:4,policy_analysis:4,sop_writing:4,medicaid_ops:3,cms_cert:3,data_reporting:3}],
+  ['Portal Content Lead',
+    {kb_mgmt:5,comms_writing:4,sop_writing:4,sharepoint:4,doc_mgmt:3,training_delivery:3,medicaid_ops:3,power_platform:2}],
+  ['Trading Partner Coordination & Support',
+    {edi_hipaa:5,medicaid_ops:4,compliance_tracking:4,sop_writing:3,data_reporting:3,incident_mgmt:3,gainwell_sys:3,mmis:3}],
+
+  // ── Business Operations Center ──
+  ['Business Operations Center (BOC) Manager',
+    {vendor_mgmt:5,project_coord:4,sop_writing:4,medicaid_ops:4,compliance_tracking:3,comms_writing:3,itsm_tools:3,training_delivery:3}],
+  ['Mail & Print Services Lead',
+    {vendor_mgmt:4,sop_writing:4,compliance_tracking:3,medicaid_ops:3,procurement_admin:3,project_coord:3}],
+
+  // ── OCM / Training & Comms ──
+  ['OCM Manager',
+    {ocm:5,comms_writing:5,training_delivery:4,training_design:4,process_mapping:4,stakeholder:4,project_coord:4,sop_writing:3,sharepoint:3}],
+  ['Training Specialist',
+    {training_delivery:5,training_design:5,lms:4,sop_writing:4,kb_mgmt:4,comms_writing:3,elearning_tools:4,medicaid_ops:3,project_coord:3}],
+  ['Knowledge-base Analyst',
+    {kb_mgmt:5,sop_writing:5,sharepoint:4,doc_mgmt:4,comms_writing:4,medicaid_ops:3,training_design:3,data_reporting:2}],
+  ['OCM Specialist',
+    {ocm:5,comms_writing:5,training_delivery:3,process_mapping:4,requirements:3,sop_writing:4,sharepoint:3,medicaid_ops:3}],
+  ['Comms Specialist',
+    {comms_writing:5,ocm:4,sop_writing:4,sharepoint:3,medicaid_ops:3,training_delivery:2,kb_mgmt:3,project_coord:3}],
+  ['Translation Services Analyst',
+    {comms_writing:4,sop_writing:4,medicaid_ops:3,compliance_tracking:3,kb_mgmt:3,sharepoint:3,training_delivery:2}],
+
+  // ── MES PMO / Enterprise Shared Services ──
+  ['MES PMO Manager',
+    {pm_formal:5,portfolio_mgmt:5,project_coord:5,requirements:4,medicaid_ops:4,data_reporting:4,stakeholder:4,process_mapping:3,pm_tools:4,compliance_tracking:3}],
+  ['Project Manager',
+    {pm_formal:5,project_coord:5,requirements:4,process_mapping:3,medicaid_ops:3,stakeholder:4,data_reporting:3,sop_writing:3,pm_tools:4,itsm_tools:3}],
+  ['Strategic Portfolio Mgmt Lead',
+    {portfolio_mgmt:5,pm_formal:4,project_coord:4,data_reporting:4,stakeholder:4,requirements:3,medicaid_ops:3,bi_tools:3,pm_tools:4}],
+
+  // ── Requirements & Process Design ──
+  ['Requirements Mgmt & Bus. Process Design Manager',
+    {requirements:5,process_mapping:5,pm_formal:4,medicaid_ops:4,sop_writing:4,qa_testing:4,stakeholder:4,policy_analysis:3,project_coord:3}],
+  ['Business Process Governance & Standards Specialist',
+    {process_mapping:5,requirements:4,sop_writing:5,compliance_tracking:4,medicaid_ops:4,qa_testing:3,policy_analysis:3,data_reporting:3}],
+  ['Business Analyst',
+    {requirements:5,process_mapping:4,qa_testing:4,medicaid_ops:4,sop_writing:4,data_reporting:3,mmis:3,stakeholder:3,excel_advanced:3}],
+  ['Policy Analyst',
+    {policy_analysis:5,medicaid_ops:5,compliance_tracking:4,apd_reporting:4,requirements:3,sop_writing:4,data_reporting:3,cms_cert:3}],
+
+  // ── Product Management Office ──
+  ['Product Management Office Manager',
+    {portfolio_mgmt:5,requirements:5,process_mapping:4,medicaid_ops:4,pm_formal:4,stakeholder:4,project_coord:4,data_reporting:3,mmis:3}],
+
+  // ── IT Business Partner ──
+  ['IT Business Partner',
+    {medicaid_ops:5,requirements:5,process_mapping:4,project_coord:4,stakeholder:4,mmis:4,qa_testing:4,data_reporting:3,sop_writing:3,compliance_tracking:3}],
+  ['Enter. Content Mgmt Lead',
+    {kb_mgmt:5,sharepoint:5,comms_writing:4,sop_writing:4,doc_mgmt:4,power_platform:3,user_mgmt:3,medicaid_ops:3}],
+  ['LMS Lead',
+    {lms:5,training_delivery:4,training_design:4,medicaid_ops:3,user_mgmt:3,data_reporting:3,sop_writing:3,elearning_tools:3}],
+  ['Portal Lead',
+    {kb_mgmt:5,sharepoint:4,comms_writing:4,sop_writing:4,medicaid_ops:3,user_mgmt:3,doc_mgmt:3,process_mapping:3}],
+  ['Performance Mgmt Lead',
+    {data_reporting:5,bi_tools:4,excel_advanced:4,compliance_tracking:3,medicaid_ops:3,sop_writing:3,sql_data:3,project_coord:3}],
+  ['M&O Lead',
+    {medicaid_ops:5,vendor_mgmt:4,sop_writing:4,compliance_tracking:4,incident_mgmt:3,dual_env:3,mmis:3,project_coord:3}],
+
+  // ── Financial Mgmt / Module leads (Gainwell side) ──
+  ['Claims Processing & Financial Management Lead',
+    {medicaid_ops:5,gainwell_sys:5,mmis:5,data_reporting:4,compliance_tracking:4,edi_hipaa:4,excel_advanced:4,sop_writing:3,incident_mgmt:3}],
+  ['Pharmacy Benefits Lead',
+    {medicaid_ops:5,gainwell_sys:4,mmis:4,compliance_tracking:4,data_reporting:3,sop_writing:3,policy_analysis:3,edi_hipaa:3}],
+  ['Third Party Liability Lead',
+    {medicaid_ops:5,compliance_tracking:4,data_reporting:4,edi_hipaa:4,gainwell_sys:3,sop_writing:3,excel_advanced:3,policy_analysis:3}],
+  ['Member Enrollment Services Lead',
+    {medicaid_ops:5,mmis:4,gainwell_sys:4,requirements:3,qa_testing:3,sop_writing:3,compliance_tracking:3,data_reporting:3,dual_env:3}],
+  ['Case Management Lead',
+    {medicaid_ops:5,requirements:4,process_mapping:4,sop_writing:4,qa_testing:3,gcp_mods:3,data_reporting:3,compliance_tracking:3}],
+  ['Provider Services Lead',
+    {medicaid_ops:5,edi_hipaa:4,gainwell_sys:4,mmis:3,sop_writing:3,compliance_tracking:3,requirements:3,data_reporting:3}],
+  ['EVV Lead',
+    {medicaid_ops:5,compliance_tracking:4,data_reporting:4,requirements:3,sop_writing:3,gainwell_sys:3,policy_analysis:3,edi_hipaa:3}],
+
+  // ── GCC / GAMMIS ──
+  ['GAMMIS Support Team Lead',
+    {gammis:5,medicaid_ops:5,mmis:4,qa_testing:4,incident_mgmt:3,sop_writing:3,data_reporting:3,dual_env:3,cutover_support:3}],
+  ['GCC Module Support Lead',
+    {gcp_mods:5,medicaid_ops:5,requirements:4,qa_testing:4,sop_writing:3,process_mapping:3,project_coord:3,dual_env:3,incident_mgmt:3}],
+];
+
+// Add alias skills that match decoder weights to form IDs
+// Note: 'stakeholder' is used in role weights but maps to vendor_mgmt-like skills
+// We'll treat it as vendor_mgmt proxy in scoring
+const SKILL_ALIASES = { stakeholder: 'vendor_mgmt', reporting: 'data_reporting' };
+
+function resolveSkillId(sid) { return SKILL_ALIASES[sid] || sid; }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEARNING AREAS
+// ═══════════════════════════════════════════════════════════════════════════
+const LEARN_AREA_IDS = [
+  'la_vendor','la_boc','la_compliance','la_ocm','la_training','la_kb',
+  'la_pm','la_portfolio','la_ba','la_process','la_policy',
+  'la_pmo_prod','la_itbp','la_content','la_lms_int',
+  'la_claims','la_pharmacy','la_enrollment','la_provider','la_evv','la_gammis',
+  'la_perf','la_data',
+];
+
+const LEARN_AREA_LABELS = {
+  la_vendor:'Vendor & contract oversight', la_boc:'Business ops / call center mgmt',
+  la_compliance:'Medicaid compliance & APD reporting', la_ocm:'OCM & stakeholder communications',
+  la_training:'Training design & delivery', la_kb:'Knowledge base & content management',
+  la_pm:'Project management (PMO)', la_portfolio:'Strategic portfolio management',
+  la_ba:'Business analysis & requirements', la_process:'Business process design & governance',
+  la_policy:'Policy analysis & federal programs', la_pmo_prod:'Product management',
+  la_itbp:'IT Business Partner role', la_content:'Enterprise content / portal management',
+  la_lms_int:'LMS administration', la_claims:'Claims & financial management',
+  la_pharmacy:'Pharmacy benefits', la_enrollment:'Member enrollment & case management',
+  la_provider:'Provider services', la_evv:'EVV operations',
+  la_gammis:'GAMMIS / legacy systems', la_perf:'Performance management & M&O metrics',
+  la_data:'Data reporting & analytics',
+};
+
+const LEARN_TO_ROLE = {
+  la_vendor:  ['Vendor Performance & Contract Administration Manager','M&O Sr Manager','Business Operations Center (BOC) Manager'],
+  la_boc:     ['Business Operations Center (BOC) Manager','Mail & Print Services Lead'],
+  la_compliance:['Medicaid Compliance & Governance APD Manager','APD Administrator','APD Compliance Specialist','Operational Reporting & Certifications Lead'],
+  la_ocm:     ['OCM Manager','OCM Specialist','Comms Specialist'],
+  la_training:['Training Specialist','OCM Manager'],
+  la_kb:      ['Knowledge-base Analyst','Portal Content Lead','Enter. Content Mgmt Lead'],
+  la_pm:      ['MES PMO Manager','Project Manager','Strategic Portfolio Mgmt Lead'],
+  la_portfolio:['Strategic Portfolio Mgmt Lead','MES PMO Manager','Product Management Office Manager'],
+  la_ba:      ['Business Analyst','Requirements Mgmt & Bus. Process Design Manager','Business Process Governance & Standards Specialist'],
+  la_process: ['Business Process Governance & Standards Specialist','Requirements Mgmt & Bus. Process Design Manager','Business Analyst'],
+  la_policy:  ['Policy Analyst','APD Compliance Specialist','Medicaid Compliance & Governance APD Manager'],
+  la_pmo_prod:['Product Management Office Manager','MES PMO Manager'],
+  la_itbp:    ['IT Business Partner'],
+  la_content: ['Enter. Content Mgmt Lead','Portal Content Lead','Portal Lead','Knowledge-base Analyst'],
+  la_lms_int: ['LMS Lead','Training Specialist'],
+  la_claims:  ['Claims Processing & Financial Management Lead','Financial Analyst'],
+  la_pharmacy:['Pharmacy Benefits Lead'],
+  la_enrollment:['Member Enrollment Services Lead','Case Management Lead'],
+  la_provider:['Provider Services Lead'],
+  la_evv:     ['EVV Lead'],
+  la_gammis:  ['GAMMIS Support Team Lead'],
+  la_perf:    ['Performance Mgmt Analyst','Performance Mgmt Lead','Operational Reporting & Certifications Lead'],
+  la_data:    ['Performance Mgmt Analyst','Financial Analyst','Data Reporting roles','Operational Reporting & Certifications Lead'],
+};
+
+const OPENNESS_LABELS = {1:'Not open',2:'Somewhat open',3:'Open & willing',4:'Actively motivated',5:'Eager — top priority'};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// JD KEYWORD MATCHING
+// ═══════════════════════════════════════════════════════════════════════════
+const ROLE_JD = {
+  'Vendor Performance & Contract Administration Manager': {
+    direct:['vendor','contract','sla','performance monitoring','vendor management','medicaid vendor','deliverable','contract tracking','vendor oversight','procurement'],
+    transferable:['stakeholder','compliance','reporting','vendor relationship','service level'],
+    growth:['vendor','contract','manage vendors','contract management']
+  },
+  'M&O Sr Manager': {
+    direct:['maintenance and operations','m&o','medicaid operations','dch','program operations','operational management','mmis operations'],
+    transferable:['project management','vendor oversight','compliance','operations management','program management'],
+    growth:['operations management','m&o','medicaid systems','program oversight']
+  },
+  'Medicaid Compliance & Governance APD Manager': {
+    direct:['apd','advance planning document','iapd','papd','cms prior approval','compliance','governance','apd submission','federal compliance','medicaid compliance'],
+    transferable:['federal reporting','regulatory','audit','compliance matrix','policy'],
+    growth:['apd','compliance','federal reporting','medicaid compliance','governance']
+  },
+  'Operational Reporting & Certifications Lead': {
+    direct:['certifications','outcomes','cms outcomes','mect','mmis certification','reporting','federal certification','compliance reporting','metrics'],
+    transferable:['data','reporting','compliance','performance metrics','dashboards'],
+    growth:['certifications','reporting','outcomes','data reporting','metrics']
+  },
+  'Performance Mgmt Analyst': {
+    direct:['performance metrics','dashboards','reporting','analytics','kpi','data analysis','performance reporting'],
+    transferable:['excel','power bi','tableau','data','metrics','reporting'],
+    growth:['data','analytics','reporting','performance','dashboards']
+  },
+  'Procurement Admin': {
+    direct:['procurement','purchasing','purchase order','state procurement','vendor onboarding','rfp','rfq','solicitation'],
+    transferable:['contract','administrative','compliance','vendor','tracking'],
+    growth:['procurement','purchasing','contracts','state procurement']
+  },
+  'Financial Analyst': {
+    direct:['financial','budget','cost','reconciliation','financial reporting','fiscal','expenditure','financial analysis','cost allocation'],
+    transferable:['excel','reporting','data','analysis','medicaid finance'],
+    growth:['financial analysis','budget','reconciliation','cost reporting']
+  },
+  'APD Administrator': {
+    direct:['apd','advance planning document','federal funding','iapd','papd','cost allocation','federal match','mediaid it funding'],
+    transferable:['compliance','federal reporting','documentation','policy','medicaid'],
+    growth:['apd','federal funding','advance planning','medicaid it']
+  },
+  'APD Compliance Specialist': {
+    direct:['compliance','apd','federal oversight','regulatory','audit','corrective action','gap assessment','compliance tracking'],
+    transferable:['policy','documentation','reporting','federal','medicaid','sop'],
+    growth:['compliance','regulatory','audit readiness','federal compliance']
+  },
+  'Portal Content Lead': {
+    direct:['portal','content','sharepoint','knowledge base','intranet','content management','web content','content lifecycle'],
+    transferable:['writing','documentation','sop','knowledge management','sharepoint'],
+    growth:['content','portal','knowledge base','sharepoint','web content']
+  },
+  'Trading Partner Coordination & Support': {
+    direct:['trading partner','edi','hipaa','electronic transaction','835','837','270','271','x12','clearinghouse','hipaa transaction'],
+    transferable:['connectivity','compliance','payer','provider enrollment','data exchange','medicaid transactions'],
+    growth:['edi','trading partner','hipaa','electronic transactions','data exchange']
+  },
+  'Business Operations Center (BOC) Manager': {
+    direct:['call center','boc','business operations center','vendor operations','operational support','contact center','call volume'],
+    transferable:['vendor management','operations','sla','compliance','reporting'],
+    growth:['operations','call center','vendor management','business operations']
+  },
+  'Mail & Print Services Lead': {
+    direct:['mail','print','mail services','print services','correspondence','member notices','mailing'],
+    transferable:['vendor','operations','compliance','sop'],
+    growth:['mail','print services','operations','member communications']
+  },
+  'OCM Manager': {
+    direct:['organizational change management','ocm','change management','stakeholder analysis','change impact','readiness assessment','adoption','user adoption'],
+    transferable:['communications','training','facilitation','stakeholder engagement','project management'],
+    growth:['change management','ocm','organizational change','user adoption','readiness']
+  },
+  'Training Specialist': {
+    direct:['training','instructor-led','e-learning','training materials','training delivery','lms','course development','facilitation','train the trainer','user training','end-user training'],
+    transferable:['instructional design','knowledge transfer','job aids','onboarding','learning','articulate'],
+    growth:['training','facilitation','teaching','learning','e-learning','lms','instructor']
+  },
+  'Knowledge-base Analyst': {
+    direct:['knowledge base','knowledge management','content','sop','standard operating procedure','sharepoint','wiki','knowledge articles','content library'],
+    transferable:['documentation','writing','technical writing','intranet','reference materials'],
+    growth:['knowledge base','content management','sops','sharepoint','documentation system']
+  },
+  'OCM Specialist': {
+    direct:['organizational change','ocm','change management','stakeholder communications','communications plan'],
+    transferable:['writing','change impact','training coordination','stakeholder engagement'],
+    growth:['change management','ocm','communications','change coordination']
+  },
+  'Comms Specialist': {
+    direct:['communications','stakeholder communications','announcements','release communications','provider notice','member communications','content creation'],
+    transferable:['writing','editing','messaging','documentation','stakeholder'],
+    growth:['communications','writing','stakeholder engagement','announcements','content']
+  },
+  'Translation Services Analyst': {
+    direct:['translation','translation services','language access','translated materials','limited english proficiency','lep','bilingual'],
+    transferable:['communications','writing','compliance','member notices'],
+    growth:['translation','language access','communications','member outreach']
+  },
+  'MES PMO Manager': {
+    direct:['pmo','project management office','portfolio','project governance','integrated master schedule','earned value','project lifecycle','project oversight'],
+    transferable:['project management','stakeholder','risk','reporting','scheduling','pmp'],
+    growth:['pmo','project management','portfolio management','pmp','project governance']
+  },
+  'Project Manager': {
+    direct:['project manager','project management','project plan','milestone','action items','project schedule','workstream','pmp','project coordination','project lifecycle'],
+    transferable:['stakeholder management','risk management','budget tracking','status reporting','change management'],
+    growth:['project management','project coordinator','pmp','agile','scrum','project planning']
+  },
+  'Strategic Portfolio Mgmt Lead': {
+    direct:['portfolio','strategic planning','project portfolio','roadmap','capacity planning','intake process','portfolio governance'],
+    transferable:['project management','reporting','leadership briefings','prioritization','metrics'],
+    growth:['portfolio','strategic planning','roadmap','portfolio management']
+  },
+  'Requirements Mgmt & Bus. Process Design Manager': {
+    direct:['requirements','business requirements','brd','process design','process mapping','use case','business analysis','functional specification','gap analysis','as-is','to-be'],
+    transferable:['documentation','stakeholder','process improvement','workflow','system requirements'],
+    growth:['requirements','business analysis','process mapping','brd','gap analysis']
+  },
+  'Business Process Governance & Standards Specialist': {
+    direct:['process governance','business process','standards','process documentation','process library','process improvement','best practices','process framework'],
+    transferable:['sop','compliance','documentation','quality','process mapping'],
+    growth:['process governance','business process','standards','process improvement','documentation']
+  },
+  'Business Analyst': {
+    direct:['business analyst','business analysis','requirements','user story','use case','brd','stakeholder interviews','gap analysis','functional requirements','uat'],
+    transferable:['documentation','process','data','testing','medicaid systems','reporting'],
+    growth:['business analyst','requirements','analysis','user stories','uat','medicaid systems']
+  },
+  'Policy Analyst': {
+    direct:['policy','policy analysis','federal policy','cms guidance','state plan','42 cfr','regulatory','medicaid policy','policy research','federal regulation'],
+    transferable:['compliance','documentation','analysis','reporting','medicaid'],
+    growth:['policy','medicaid policy','federal guidance','regulatory analysis','cms']
+  },
+  'Product Management Office Manager': {
+    direct:['product management','product owner','product roadmap','backlog','product strategy','module ownership','product lifecycle'],
+    transferable:['requirements','stakeholder','portfolio','project management','agile','scrum'],
+    growth:['product management','product owner','roadmap','backlog','product strategy']
+  },
+  'IT Business Partner': {
+    direct:['it business partner','itbp','business partner','liaison','program liaison','it liaison','strategic relationship'],
+    transferable:['requirements','process','project management','stakeholder','medicaid','it systems'],
+    growth:['business partner','it liaison','it business partner','program liaison']
+  },
+  'Enter. Content Mgmt Lead': {
+    direct:['content management','enterprise content','sharepoint','portal','intranet','content governance','digital content'],
+    transferable:['knowledge base','documentation','web content','taxonomy','sharepoint'],
+    growth:['content management','portal','sharepoint','enterprise content']
+  },
+  'LMS Lead': {
+    direct:['lms','learning management system','training platform','course publishing','scorm','completion tracking','learning administration'],
+    transferable:['training','e-learning','user management','reporting','curriculum'],
+    growth:['lms','learning management','training platform','e-learning','lms admin']
+  },
+  'Portal Lead': {
+    direct:['portal','sharepoint','web portal','intranet portal','member portal','content','portal management'],
+    transferable:['content','knowledge base','communications','sharepoint'],
+    growth:['portal','sharepoint','intranet','content','web portal']
+  },
+  'Performance Mgmt Lead': {
+    direct:['performance management','metrics','kpi','dashboards','performance reporting','operational metrics','performance tracking'],
+    transferable:['data','reporting','analytics','excel','power bi'],
+    growth:['performance','metrics','kpi','dashboards','analytics']
+  },
+  'M&O Lead': {
+    direct:['maintenance and operations','m&o','operations','mmis operations','operational support','system operations'],
+    transferable:['vendor','medicaid systems','compliance','incident management'],
+    growth:['m&o','operations','medicaid systems','operational support']
+  },
+  'Claims Processing & Financial Management Lead': {
+    direct:['claims','claims processing','financial management','claims adjudication','remittance','835','837','claims payment','medicaid claims','gainwell'],
+    transferable:['edi','hipaa','medicaid','compliance','reporting','financial'],
+    growth:['claims','financial management','claims processing','adjudication']
+  },
+  'Pharmacy Benefits Lead': {
+    direct:['pharmacy','pharmacy benefits','pbm','drug claims','formulary','pharmacy benefit management','prescription'],
+    transferable:['medicaid','compliance','reporting','gainwell','edi'],
+    growth:['pharmacy','pharmacy benefits','pbm','drug coverage']
+  },
+  'Third Party Liability Lead': {
+    direct:['third party liability','tpl','cost avoidance','subrogation','other insurance','coordination of benefits','cob'],
+    transferable:['medicaid','compliance','data','reporting','edi'],
+    growth:['tpl','third party liability','cost avoidance','coordination of benefits']
+  },
+  'Member Enrollment Services Lead': {
+    direct:['member enrollment','enrollment','eligibility','member management','medicaid enrollment','eligibility verification'],
+    transferable:['medicaid','compliance','mmis','reporting','data'],
+    growth:['enrollment','member enrollment','eligibility','medicaid enrollment']
+  },
+  'Case Management Lead': {
+    direct:['case management','care coordination','case manager','care management','service coordination','georgia care connect','gcc'],
+    transferable:['medicaid','process','requirements','compliance','reporting'],
+    growth:['case management','care coordination','care management','gcc']
+  },
+  'Provider Services Lead': {
+    direct:['provider','provider enrollment','provider management','provider services','credentialing','provider relations','npi'],
+    transferable:['medicaid','edi','compliance','reporting','requirements'],
+    growth:['provider services','provider enrollment','provider management','credentialing']
+  },
+  'EVV Lead': {
+    direct:['evv','electronic visit verification','visit verification','home health','personal care services','21st century cures'],
+    transferable:['medicaid','compliance','reporting','data','federal requirements'],
+    growth:['evv','electronic visit verification','home health','personal care']
+  },
+  'GAMMIS Support Team Lead': {
+    direct:['gammis','legacy system','georgia mmis','legacy medicaid','legacy platform','legacy support'],
+    transferable:['mmis','medicaid systems','testing','incident management','data'],
+    growth:['gammis','legacy system','legacy medicaid','system support']
+  },
+  'GCC Module Support Lead': {
+    direct:['georgia care connect','gcc','care coordination','module','grantee','managed care','waiver','ltss'],
+    transferable:['requirements','testing','medicaid','process','project management'],
+    growth:['gcc','care connect','care coordination','module support']
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCORING
+// ═══════════════════════════════════════════════════════════════════════════
+function roleSkillScore(skillRatings, weights) {
+  let ws=0, tw=0;
+  Object.entries(weights).forEach(([sid,w]) => {
+    const resolved = resolveSkillId(sid);
+    ws += (skillRatings[resolved]||0) * w;
+    tw += 5 * w;
+  });
+  return tw>0 ? Math.round((ws/tw)*100) : 0;
+}
+
+function jdScore(person, roleName) {
+  const jd = ROLE_JD[roleName];
+  if (!jd) return 0;
+  const text = [person.learnDetail, person.strength, person.notes, person.developing, person.target].join(' ').toLowerCase();
+  let score = 0;
+  (jd.direct||[]).forEach(kw => { if (text.includes(kw.toLowerCase())) score += 3; });
+  (jd.transferable||[]).forEach(kw => { if (text.includes(kw.toLowerCase())) score += 1.5; });
+  (jd.growth||[]).forEach(kw => { if (text.includes(kw.toLowerCase())) score += 0.8; });
+  return Math.min(100, Math.round(score * 4));
+}
+
+function learnBonus(person, roleName) {
+  let bonus = 0;
+  const opn = person.learnOpen || 0;
+  LEARN_AREA_IDS.forEach((lid, idx) => {
+    const rating = parseInt((person.learnAreas||'')[idx]||'0') || 0;
+    const mapped = LEARN_TO_ROLE[lid] || [];
+    if (mapped.includes(roleName) && rating >= 3) {
+      bonus += (rating - 2) * 2;
+    }
+  });
+  const opMult = opn >= 4 ? 1.3 : opn >= 3 ? 1.1 : 1.0;
+  return Math.min(20, Math.round(bonus * opMult));
+}
+
+function scoreAll(person) {
+  return ROLES.map(([name, weights]) => {
+    const skill   = roleSkillScore(person.ratings, weights);
+    const jd      = jdScore(person, name);
+    const lb      = learnBonus(person, name);
+    const blended = Math.min(100, Math.round(skill * 0.55 + jd * 0.30 + lb));
+    return { name, skill, jdMatch: jd, learnBonus: lb, blended };
+  });
+}
+
+function assignRoles(people) {
+  const n = people.length;
+  const matrix = people.map(p => scoreAll(p));
+  const roleUsed = new Array(ROLES.length).fill(false);
+  const assignedRole = new Array(n).fill(null);
+  const order = people.map((p,pi) => ({
+    pi, best: matrix[pi].map((s,ri)=>({ri,score:s.blended})).sort((a,b)=>b.score-a.score)[0]
+  })).sort((a,b) => b.best.score - a.best.score);
+  for (const {pi} of order) {
+    const sorted = matrix[pi].map((s,ri)=>({ri,score:s.blended})).sort((a,b)=>b.score-a.score);
+    for (const {ri} of sorted) { if(!roleUsed[ri]){assignedRole[pi]=ri;roleUsed[ri]=true;break;} }
+    if (assignedRole[pi]===null) assignedRole[pi]=sorted[0].ri;
+  }
+  return assignedRole.map((ri,pi) => ({
+    roleIdx:ri, roleName:ROLES[ri][0],
+    blended:matrix[pi][ri].blended, skill:matrix[pi][ri].skill,
+    jdMatch:matrix[pi][ri].jdMatch, learnBonus:matrix[pi][ri].learnBonus,
+    allScores:matrix[pi],
+  }));
+}
+
+function scorePill(pct){
+  const cls=pct>=65?'s-green':pct>=45?'s-yellow':pct>=25?'s-orange':'s-red';
+  return `<span class="score-pill ${cls}">${pct}%</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DECODE
+// ═══════════════════════════════════════════════════════════════════════════
+function safeEncode(obj){return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));}
+function safeDecode(str){
+  try{return JSON.parse(decodeURIComponent(escape(atob(str))));}
+  catch(e){return JSON.parse(atob(str));}
+}
+
+function decode(code){
+  try{
+    let raw=code.trim();
+    if(raw.startsWith('EPSS_PATHFINDER_V4:')) raw=raw.slice(19);
+    const data=safeDecode(raw);
+    const rstr=data.r||'';
+    const skillRatings={};
+    SKILL_IDS_FINAL.forEach((sid,i)=>{skillRatings[sid]=parseInt(rstr[i]||'0')||0;});
+    return{
+      name:data.n||'Unknown', title:data.t||'', team:data.tm||'',
+      years:data.y||'', strength:data.s||'', developing:data.dv||'',
+      target:data.tg||'', notes:data.x||'', date:data.dt||'',
+      ratings:skillRatings,
+      learnOpen:parseInt(data.lo||'0')||0,
+      learnAreas:data.la||'',
+      learnDetail:data.ld||'',
+    };
+  }catch(e){return null;}
+}
+
+let decoded=[];
+
+function decodeAll(){
+  const raw=document.getElementById('codes-input').value.trim();
+  if(!raw){showStatus('Paste at least one submission code to continue.','error');return;}
+  const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l.length>10);
+  decoded=[];const errors=[];
+  lines.forEach((line,i)=>{const r=decode(line);if(r)decoded.push(r);else errors.push(i+1);});
+  if(!decoded.length){showStatus('No valid codes found. Codes should start with EPSS_PATHFINDER_V4:','error');return;}
+  let msg=`${decoded.length} submission${decoded.length>1?'s':''} decoded.`;
+  if(errors.length)msg+=` ${errors.length} line${errors.length>1?'s':''} could not be read.`;
+  showStatus(msg,'success');
+  renderPreview();
+}
+
+function renderPreview(){
+  document.getElementById('preview-section').style.display='block';
+  document.getElementById('count-badge').textContent=decoded.length+' people';
+  const tbody=document.getElementById('preview-body');
+  const assignments=assignRoles(decoded);
+  tbody.innerHTML=decoded.map((p,i)=>{
+    const asgn=assignments[i];
+    const rated=SKILL_IDS_FINAL.filter(sid=>p.ratings[sid]>0).length;
+    const opLabel=OPENNESS_LABELS[p.learnOpen]||'—';
+    const opColor=p.learnOpen>=4?'s-green':p.learnOpen>=3?'s-yellow':p.learnOpen>=2?'s-orange':'';
+    const sorted=asgn.allScores.map((s,ri)=>({...s,ri})).sort((a,b)=>b.blended-a.blended);
+    const second=sorted.find(s=>s.ri!==asgn.roleIdx)||sorted[1];
+    return`<tr>
+      <td style="color:#888;font-size:11px">${i+1}</td>
+      <td><strong>${p.name}</strong></td>
+      <td style="font-size:11px">${p.title}<br><span style="color:#888">${p.team}</span></td>
+      <td style="font-size:11px;color:#888">${p.date}</td>
+      <td style="text-align:center;font-size:11px">${rated}/${SKILL_IDS_FINAL.length}</td>
+      <td><span class="score-pill ${opColor}" style="font-size:10px">${opLabel}</span></td>
+      <td style="font-weight:700;color:#085041">${asgn.roleName} ${scorePill(asgn.blended)}
+        <span style="font-size:10px;color:#555;font-weight:400;display:block">
+          skill ${asgn.skill}% &nbsp;|&nbsp; JD ${asgn.jdMatch}% &nbsp;|&nbsp; interests +${asgn.learnBonus}
+        </span></td>
+      <td style="font-size:11px">${second?second.name+' '+scorePill(second.blended):''}</td>
+      <td style="font-size:11px;color:#444;max-width:180px">${p.target||'—'}</td>
+      <td><button class="remove-btn" onclick="removePerson(${i})" title="Remove">&#10005;</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('download-section').style.display=decoded.length?'block':'none';
+}
+
+function removePerson(idx){
+  decoded.splice(idx,1);
+  if(!decoded.length){document.getElementById('preview-section').style.display='none';return;}
+  renderPreview();
+}
+function showStatus(msg,type='info'){
+  const el=document.getElementById('status-bar');
+  el.textContent=msg;
+  el.className='status-bar '+(type==='error'?'error':type==='success'?'success':'');
+  el.style.display='block';
+}
+function clearAll(){
+  document.getElementById('codes-input').value='';
+  document.getElementById('status-bar').style.display='none';
+  document.getElementById('preview-section').style.display='none';
+  decoded=[];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXCEL EXPORT
+// ═══════════════════════════════════════════════════════════════════════════
+function cw(w){return{wch:w};}
+const NAVY='1F4E79',BLUE='2E75B6',LTBLUE='DBEEFF',TEAL='085041',LTTEAL='C8EEE0',
+      LTGREEN='D8EEC2',AMBER='633806',LTAMBER='FDE9BE',RED='A32D2D',LTRED='FBDDD3',
+      GRAY='F4F6F9',WHITE='FFFFFF';
+function hs(bg,fg='FFFFFF',sz=10,bold=true){return{font:{name:'Arial',bold,sz,color:{rgb:fg}},fill:{patternType:'solid',fgColor:{rgb:bg}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:{bottom:{style:'thin',color:{rgb:'CBD5E0'}}}}}
+function bs(bg=WHITE,bold=false,align='left',wrap=false){return{font:{name:'Arial',bold,sz:10,color:{rgb:'222222'}},fill:{patternType:'solid',fgColor:{rgb:bg}},alignment:{horizontal:align,vertical:'center',wrapText:wrap},border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}}}}
+function ss(pct){const bg=pct>=65?LTTEAL:pct>=45?LTAMBER:pct>=25?LTRED:'F7C1C1';const fg=pct>=65?TEAL:pct>=45?AMBER:RED;return{font:{name:'Arial',bold:true,sz:10,color:{rgb:fg}},fill:{patternType:'solid',fgColor:{rgb:bg}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}}}}
+function mc(v,s){return{v,s,t:typeof v==='number'?'n':'s'};}
+
+function downloadExcel(){
+  const wb=XLSX.utils.book_new();
+  const assignments=assignRoles(decoded);
+
+  // Sheet 1: Role Score Heatmap
+  const h1=[mc('Staff member',hs(NAVY)),mc('Title',hs(NAVY)),mc('Team',hs(NAVY)),
+    ...ROLES.map(([n])=>mc(n,hs(NAVY,'FFFFFF',7))),
+    mc('Avg',hs(NAVY)),mc('Best match',hs(NAVY)),mc('Openness',hs(NAVY))];
+  const rows1=[h1];
+  decoded.forEach((p,ri)=>{
+    const bg=ri%2===0?GRAY:WHITE;
+    const asgn=assignments[ri];
+    const blended=asgn.allScores.map(s=>s.blended);
+    const avg=Math.round(blended.reduce((a,b)=>a+b,0)/blended.length);
+    const opLabel=OPENNESS_LABELS[p.learnOpen]||'—';
+    rows1.push([mc(p.name,bs(bg,true)),mc(p.title,bs(bg)),mc(p.team,bs(bg)),
+      ...blended.map(pct=>mc(pct+'%',ss(pct))),
+      mc(avg+'%',ss(avg)),mc(asgn.roleName+' ✓',bs(LTTEAL,true)),
+      mc(opLabel,p.learnOpen>=4?bs(LTTEAL,true,'center'):p.learnOpen>=3?bs(LTAMBER,false,'center'):bs(bg,false,'center'))]);
+  });
+  const ws1=XLSX.utils.aoa_to_sheet(rows1);
+  ws1['!cols']=[cw(24),cw(20),cw(22),...ROLES.map(()=>cw(12)),cw(8),cw(36),cw(18)];
+  ws1['!rows']=[{hpt:72},...decoded.map(()=>({hpt:18}))];
+  XLSX.utils.book_append_sheet(wb,ws1,'Role Score Heatmap');
+
+  // Sheet 2: Assignment Planner
+  const h2=['Staff member','Title','Team','#1 Match','Score','#2 Match','Score','#3 Match','Score',
+    'Openness','Top interest areas','Self-identified target','Assigned role','Status','Notes'].map(h=>mc(h,hs(NAVY)));
+  const rows2=[h2];
+  decoded.forEach((p,ri)=>{
+    const bg=ri%2===0?GRAY:WHITE;
+    const asgn=assignments[ri];
+    const sorted=asgn.allScores.map((s,idx)=>({...s,idx})).sort((a,b)=>b.blended-a.blended);
+    const second=sorted.find(s=>s.idx!==asgn.roleIdx)||sorted[1];
+    const third=sorted.filter(s=>s.idx!==asgn.roleIdx&&s!==second)[0]||sorted[2];
+    const opLabel=OPENNESS_LABELS[p.learnOpen]||'—';
+    const topAreas=LEARN_AREA_IDS.map((lid,i)=>{
+      const r=parseInt((p.learnAreas||'')[i]||'0')||0;
+      return r>=4?LEARN_AREA_LABELS[lid]:null;
+    }).filter(Boolean).join(', ');
+    rows2.push([mc(p.name,bs(bg,true)),mc(p.title,bs(bg)),mc(p.team,bs(bg)),
+      mc(asgn.roleName+' (ASSIGNED)',bs(LTTEAL,true)),mc(asgn.blended+'%',ss(asgn.blended)),
+      mc(second?second.name:'',bs(LTBLUE)),mc(second?second.blended+'%':'',second?ss(second.blended):bs(bg)),
+      mc(third?third.name:'',bs(LTAMBER)),mc(third?third.blended+'%':'',third?ss(third.blended):bs(bg)),
+      mc(opLabel,p.learnOpen>=4?bs(LTTEAL,true,'center'):bs(bg,false,'center')),
+      mc(topAreas,bs(bg,false,'left',true)),
+      mc(p.target,bs(bg,false,'left',true)),
+      mc('',bs(WHITE)),mc('',bs(WHITE)),mc('',bs(WHITE))]);
+  });
+  const ws2=XLSX.utils.aoa_to_sheet(rows2);
+  ws2['!cols']=[cw(24),cw(20),cw(22),cw(34),cw(9),cw(34),cw(9),cw(34),cw(9),cw(18),cw(36),cw(36),cw(34),cw(14),cw(36)];
+  ws2['!rows']=[{hpt:28},...decoded.map(()=>({hpt:22}))];
+  XLSX.utils.book_append_sheet(wb,ws2,'Role Assignment Planner');
+
+  // Sheet 3: Learning & Growth + Open Text
+  const h3=['Staff member','Title','Team','Openness','Open to training?',
+    'Top interest areas (4+ score)','What they want to do next','Currently developing',
+    'Self-identified target role','Strengths','Notes'].map(h=>mc(h,hs(NAVY)));
+  const rows3=[h3];
+  decoded.forEach((p,ri)=>{
+    const bg=ri%2===0?GRAY:WHITE;
+    const opLabel=OPENNESS_LABELS[p.learnOpen]||'—';
+    const topAreas=LEARN_AREA_IDS.map((lid,i)=>{
+      const r=parseInt((p.learnAreas||'')[i]||'0')||0;
+      return r>=4?`${LEARN_AREA_LABELS[lid]} (${r}/5)`:null;
+    }).filter(Boolean).join(', ');
+    const opStyle=p.learnOpen>=4?bs(LTTEAL,true,'center'):p.learnOpen>=3?bs(LTAMBER,false,'center'):bs(bg,false,'center');
+    rows3.push([mc(p.name,bs(bg,true)),mc(p.title,bs(bg)),mc(p.team,bs(bg)),
+      mc(p.learnOpen?p.learnOpen+'/5':'',ss(p.learnOpen>=3?65:p.learnOpen>=2?45:20)),
+      mc(opLabel,opStyle),mc(topAreas,bs(bg,false,'left',true)),
+      mc(p.learnDetail,bs(bg,false,'left',true)),mc(p.developing,bs(bg,false,'left',true)),
+      mc(p.target,bs(bg,false,'left',true)),mc(p.strength,bs(bg,false,'left',true)),
+      mc(p.notes,bs(bg,false,'left',true))]);
+  });
+  const ws3=XLSX.utils.aoa_to_sheet(rows3);
+  ws3['!cols']=[cw(24),cw(20),cw(22),cw(12),cw(20),cw(40),cw(44),cw(36),cw(36),cw(36),cw(32)];
+  ws3['!rows']=[{hpt:28},...decoded.map(()=>({hpt:44}))];
+  XLSX.utils.book_append_sheet(wb,ws3,'Learning & Growth');
+
+  // Sheet 4: Skill Ratings Detail
+  const catColors={'Ops & Program Mgmt':{bg:'0C3E6B',fg:LTBLUE},'Business Analysis':{bg:'3B6D11',fg:LTGREEN},
+    'Comms / Training / Knowledge':{bg:'633806',fg:LTAMBER},'Federal & Compliance':{bg:'A32D2D',fg:LTRED},
+    'Medicaid Systems':{bg:'1F4E79',fg:'FFFFFF'},'Program & Project Tools':{bg:'2E75B6',fg:'FFFFFF'},
+    'Data & Reporting Tools':{bg:'085041',fg:LTTEAL},'Content & Learning':{bg:'4A235A',fg:'E8D5F5'},
+    'IT Operations':{bg:'4A4A4A',fg:'F0F0F0'}};
+  const catHdr=[mc('Name',hs(NAVY)),mc('Title',hs(NAVY)),
+    ...SKILL_IDS_FINAL.map(sid=>{const c=catColors[SKILL_CATS[sid]]||{bg:NAVY,fg:'FFFFFF'};return mc(SKILL_CATS[sid],hs(c.bg,c.fg,7));})];
+  const skillHdr=[mc('Name',hs(BLUE)),mc('Title',hs(BLUE)),
+    ...SKILL_IDS_FINAL.map(sid=>mc(SKILL_NAMES[sid],hs(BLUE,'FFFFFF',7)))];
+  const rows4=[catHdr,skillHdr];
+  decoded.forEach((p,ri)=>{
+    const bg=ri%2===0?GRAY:WHITE;
+    rows4.push([mc(p.name,bs(bg,true)),mc(p.title,bs(bg)),
+      ...SKILL_IDS_FINAL.map(sid=>{
+        const v=p.ratings[sid]||0;
+        if(!v)return mc('',bs(bg,false,'center'));
+        const rc={1:{bg:LTRED,fg:RED},2:{bg:LTAMBER,fg:AMBER},3:{bg:LTBLUE,fg:'0C447C'},4:{bg:LTTEAL,fg:TEAL},5:{bg:LTGREEN,fg:'3B6D11'}}[v]||{bg,fg:'222222'};
+        return mc(v,{font:{name:'Arial',bold:true,sz:10,color:{rgb:rc.fg}},fill:{patternType:'solid',fgColor:{rgb:rc.bg}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}}});
+      })]);
+  });
+  const ws4=XLSX.utils.aoa_to_sheet(rows4);
+  ws4['!cols']=[cw(24),cw(20),...SKILL_IDS_FINAL.map(()=>cw(5.5))];
+  ws4['!rows']=[{hpt:28},{hpt:72},...decoded.map(()=>({hpt:18}))];
+  XLSX.utils.book_append_sheet(wb,ws4,'Skill Ratings Detail');
+
+  const date=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`EPSS_PathFinder_Assessment_${date}.xlsx`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEMO DATA
+// r string (41 chars): Step1(20) + Step2(21)
+// ═══════════════════════════════════════════════════════════════════════════
+function loadDemo(){
+  const demos=[
+    {n:'Bonnie Young',t:'Project Manager',tm:'Shared Services',y:'4 years',
+     r:'33455343235340243332334433403030033',
+     s:'Strong at keeping projects on track across multiple vendors and business areas. Teams rely on me to own the action log and hold people accountable.',
+     tg:'I would love to grow into a PMO manager role or take on a strategic portfolio responsibility.',
+     x:'PMP certified. Comfortable facilitating executive briefings.',
+     lo:'4',la:'00000015451300000000000',
+     ld:'I want to move into a more strategic planning role — either portfolio management or product ownership. I am also interested in the IT Business Partner track.',
+     dv:'Completing an Agile/SAFe certification this quarter',dt:'6/15/2026'},
+    {n:'Marcus Clayton',t:'Business Analyst, Level 4',tm:'Requirements & Process Design',y:'6 years',
+     s:'Subject matter expert on MMIS requirements. No one knows the as-is process landscape better than I do.',
+     tg:'Requirements Mgmt & Bus. Process Design Manager or Policy Analyst.',
+     x:'Deep experience with BRD writing and gap analysis for CMS submissions.',
+     r:'24544554435220133332444333203020044',
+     lo:'3',la:'00000005430010010000000',
+     ld:'I want to step into a management role overseeing the requirements and process design team. I also have strong interest in policy analysis.',
+     dv:'Taking a Medicaid policy certificate program through Georgetown',dt:'6/15/2026'},
+    {n:'Takasha Hurley',t:'Project Manager',tm:'MES PMO',y:'3 years',
+     s:'Excellent at cross-functional coordination and keeping executive stakeholders informed. I run 3 concurrent workstreams.',
+     tg:'MES PMO Manager or Strategic Portfolio Mgmt Lead',
+     x:'Experience managing vendor contracts and SLA tracking in addition to PM work.',
+     r:'34544523233230242332333433403030034',
+     lo:'5',la:'00000046340000000000000',
+     ld:'I am ready to take on portfolio-level work. I want to own the roadmap and intake process for the PMO.',
+     dv:'Building out my skills in Power BI for executive dashboards',dt:'6/15/2026'},
+    {n:'Bradley Harper',t:'Business Analyst, Level 4',tm:'Enterprise Shared Services',y:'5 years',
+     s:'Deep knowledge of Medicaid claims and eligibility. I am the go-to person when program staff do not understand how the MMIS works.',
+     tg:'IT Business Partner or Claims Processing Lead',
+     x:'Worked directly with Gainwell teams on financial reconciliation projects.',
+     r:'24343453554340142332534422334040043',
+     lo:'4',la:'00000000200310140100000',
+     ld:'I want to move into an IT Business Partner role where I can own a program area end-to-end. Claims and financial management are my strongest areas.',
+     dv:'Studying for a Medicaid compliance certification',dt:'6/15/2026'},
+    {n:'Waverly Wesson',t:'M&O Sr Manager',tm:'Operations Support',y:'7 years',
+     s:'I understand Medicaid operations from top to bottom — eligibility, claims, vendor relationships, and federal compliance.',
+     tg:'Medicaid Compliance & Governance APD Manager or Operations Support Director (when ready)',
+     x:'Led the last two APD submissions. Deep relationships with CMS regional office.',
+     r:'55535352545440244433544422403030024',
+     lo:'3',la:'00300000003000000000000',
+     ld:'I want to deepen my federal compliance and APD expertise. I am also interested in taking on more governance responsibility.',
+     dv:'Enrolled in a federal grant management course',dt:'6/14/2026'},
+    {n:'Avery Flower',t:'APD Compliance Specialist',tm:'Operations Support',y:'2 years',
+     s:'Regulatory research and compliance documentation. I write compliance matrices that leadership actually reads.',
+     tg:'APD Administrator or Operational Reporting & Certifications Lead',
+     x:'Strong writing background. Previously worked in Medicaid policy before joining EPSS.',
+     r:'23432354543020044233223222103020032',
+     lo:'4',la:'00300000002030000000000',
+     ld:'I want to take on more responsibility in the compliance and federal certification space. APD work is my long-term goal.',
+     dv:'Completing a health law and compliance certificate program',dt:'6/14/2026'},
+  ];
+  const codes=demos.map(d=>'EPSS_PATHFINDER_V4:'+safeEncode({v:4,...d}));
+  document.getElementById('codes-input').value=codes.join('\n');
+  showStatus('Demo data loaded — click "Decode submissions" to see results.','info');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPSS Staff PathFinder</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:14px;background:#f4f6f9;color:#222;min-height:100vh}
+.shell{max-width:740px;margin:0 auto;padding:24px 16px 56px}
+.header{background:#1F4E79;color:#fff;border-radius:8px;padding:24px 28px;margin-bottom:20px}
+.header h1{font-size:20px;font-weight:700;margin-bottom:6px}
+.header p{font-size:13px;opacity:.85;line-height:1.6}
+.card{background:#fff;border:1px solid #dde2ea;border-radius:8px;padding:22px 24px;margin-bottom:16px}
+.card h2{font-size:15px;font-weight:700;color:#1F4E79;margin-bottom:6px;padding-bottom:8px;border-bottom:2px solid #DBEEFF;text-transform:uppercase;letter-spacing:.04em}
+.step-desc{font-size:13px;color:#555;margin-bottom:18px;line-height:1.6}
+.step-num{font-size:11px;font-weight:700;color:#2E75B6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:700;color:#444;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.field label .req{color:#C0392B;margin-left:2px}
+.field input,.field textarea,.field select{width:100%;border:1.5px solid #cdd3dc;border-radius:6px;padding:9px 11px;font-size:14px;font-family:Arial,sans-serif;color:#222;background:#fff;transition:border-color .15s}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:#2E75B6;box-shadow:0 0 0 3px rgba(46,117,182,.1)}
+.field textarea{resize:vertical;min-height:80px}
+.field-hint{font-size:11px;color:#888;margin-top:5px;line-height:1.5}
+.field-row{display:flex;gap:12px;flex-wrap:wrap}
+.field-row .field{flex:1;min-width:180px}
+.legend{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.lchip{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid transparent;line-height:1.3}
+.skill-group-title{font-size:11px;font-weight:700;color:#2E75B6;text-transform:uppercase;letter-spacing:.06em;margin:20px 0 8px;padding-bottom:5px;border-bottom:1px solid #e8ecf2}
+.skill-row{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid #f2f4f7}
+.skill-row:last-child{border-bottom:none}
+.skill-text{flex:1}
+.skill-name{font-size:13px;font-weight:600;color:#222;line-height:1.4}
+.skill-plain{font-size:12px;color:#555;margin-top:3px;line-height:1.45;font-style:italic}
+.skill-examples{font-size:11px;color:#999;margin-top:3px;line-height:1.4}
+.rating-group{display:flex;gap:4px;flex-shrink:0;align-items:center}
+.rating-group input[type=radio]{display:none}
+.rating-group label{width:32px;height:32px;border-radius:6px;border:1.5px solid #d0d7e2;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;color:#999;background:#fafafa;transition:all .12s;user-select:none}
+.rating-group label:hover{border-color:#2E75B6;color:#1F4E79;background:#EBF3FC}
+.rating-group input[type=radio]:checked+label{border-color:transparent;color:#fff}
+.r1:checked+label{background:#E05A3A}.r2:checked+label{background:#E8973A}
+.r3:checked+label{background:#2E75B6}.r4:checked+label{background:#27AE8F}
+.r5:checked+label{background:#3B8B2A}
+.rating-labels{display:flex;gap:4px;margin-bottom:6px;justify-content:flex-end}
+.rating-label-item{width:32px;text-align:center;font-size:9px;color:#aaa;line-height:1.2}
+.learn-area-row{padding:11px 0;border-bottom:1px solid #f2f4f7}
+.learn-area-row:last-child{border-bottom:none}
+.learn-area-header{display:flex;align-items:flex-start;gap:12px}
+.learn-area-text{flex:1}
+.learn-area-name{font-size:13px;font-weight:600;color:#222;line-height:1.4}
+.learn-area-desc{font-size:11px;color:#999;margin-top:3px;line-height:1.4;font-style:italic}
+.learn-rating-group{display:flex;gap:4px;flex-shrink:0;align-items:center}
+.learn-rating-group input[type=radio]{display:none}
+.learn-rating-group label{width:32px;height:32px;border-radius:6px;border:1.5px solid #d0d7e2;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;color:#999;background:#fafafa;transition:all .12s;user-select:none}
+.learn-rating-group label:hover{border-color:#2E75B6;color:#1F4E79;background:#EBF3FC}
+.learn-rating-group input[type=radio]:checked+label{border-color:transparent;color:#fff}
+.lr1:checked+label{background:#E05A3A}.lr2:checked+label{background:#E8973A}
+.lr3:checked+label{background:#2E75B6}.lr4:checked+label{background:#27AE8F}
+.lr5:checked+label{background:#3B8B2A}
+.learn-area-row.unrated-learn{background:#FEF2F2;border-radius:6px;outline:1.5px solid #E05A3A}
+.learn-area-row.unrated-learn .learn-area-name{color:#C0392B}
+.open-grid{display:flex;flex-direction:column;gap:6px;margin:8px 0 20px}
+.open-opt input[type=radio]{display:none}
+.open-opt label{display:flex;align-items:center;gap:10px;padding:11px 16px;border:1.5px solid #dde2ea;border-radius:7px;cursor:pointer;font-size:13px;color:#444;background:#fafafa;transition:all .12s;user-select:none}
+.open-opt label:hover{border-color:#2E75B6;background:#f7faff}
+.open-opt input[type=radio]:checked+label{border-color:#1F4E79;background:#EBF3FC;color:#1F4E79;font-weight:700}
+.open-dot{width:12px;height:12px;border-radius:50%;border:2px solid #ccc;flex-shrink:0}
+.open-opt input[type=radio]:checked+label .open-dot{border-color:#1F4E79;background:#1F4E79}
+.required-flag{font-size:11px;color:#C0392B;margin-left:4px}
+.progress-wrap{margin-bottom:20px}
+.progress-bar{height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:#2E75B6;border-radius:3px;transition:width .35s}
+.progress-label{font-size:11px;color:#888;margin-top:5px;text-align:right}
+.step{display:none}.step.active{display:block}
+.nav{display:flex;align-items:center;gap:10px;margin-top:24px;padding-top:16px;border-top:1px solid #eef0f4}
+.nav .spacer{flex:1}
+.btn{padding:10px 22px;border-radius:6px;border:1.5px solid #2E75B6;background:#fff;color:#2E75B6;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;transition:all .12s}
+.btn:hover{background:#EBF3FC}
+.btn.primary{background:#1F4E79;color:#fff;border-color:#1F4E79}
+.btn.primary:hover{background:#163a5f}
+.output-box{background:#f4f6f9;border:1px solid #cdd3dc;border-radius:6px;padding:14px;font-family:'Courier New',monospace;font-size:11px;word-break:break-all;color:#222;max-height:200px;overflow-y:auto;margin:12px 0;white-space:pre-wrap;line-height:1.5}
+.completion-icon{font-size:52px;text-align:center;margin:8px 0 14px;color:#1D9E75}
+.skill-row.unrated{background:#FEF2F2;border-radius:6px;outline:1.5px solid #E05A3A}
+.skill-row.unrated .skill-name{color:#C0392B}
+.error-msg{color:#C0392B;font-size:12px;margin-top:6px;display:none}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<div class="header">
+  <h1>EPSS Staff PathFinder</h1>
+  <p>Enterprise Portfolio Support &nbsp;&middot;&nbsp; Deputy CIO &mdash; Rick Anderson<br>
+  This assessment helps leadership understand your background and identify where you could grow within the organization. Be honest &mdash; <strong>there are no wrong answers.</strong></p>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-bar"><div class="progress-fill" id="pbar" style="width:0%"></div></div>
+  <div class="progress-label" id="progress-label">Step 1 of 5</div>
+</div>
+
+<!-- ── STEP 0: About You ─────────────────────────────────────────────────── -->
+<div class="step active card" id="step-0">
+  <div class="step-num">Step 1 of 5</div>
+  <h2>About you</h2>
+  <p class="step-desc">Tell us about your current role. All fields are required.</p>
+  <div class="field-row">
+    <div class="field">
+      <label>Full name <span class="req">*</span></label>
+      <input type="text" id="f-name" placeholder="First and last name">
+      <div class="error-msg" id="err-name">Please enter your name.</div>
+    </div>
+    <div class="field">
+      <label>Current job title <span class="req">*</span></label>
+      <input type="text" id="f-title" placeholder="e.g. Business Analyst">
+      <div class="error-msg" id="err-title">Please enter your current title.</div>
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>Team / branch <span class="req">*</span></label>
+      <select id="f-team">
+        <option value="">Select your team...</option>
+        <option>Operations Support</option>
+        <option>Business Operations Center (BOC)</option>
+        <option>OCM / Training & Comms</option>
+        <option>Enterprise Shared Services</option>
+        <option>MES PMO</option>
+        <option>Requirements & Process Design</option>
+        <option>Product Management Office</option>
+        <option>IT Business Partner – Shared Services</option>
+        <option>IT Business Partner – Claims/Finance & PBM</option>
+        <option>IT Business Partner – Enrollment & Case Mgmt</option>
+        <option>IT Business Partner – Provider & EVV</option>
+        <option>GAMMIS / Legacy Systems</option>
+        <option>Georgia Care Connect (GCC)</option>
+        <option>Other / Not listed</option>
+      </select>
+      <div class="error-msg" id="err-team">Please select your team.</div>
+    </div>
+    <div class="field">
+      <label>Years with DCH / EPSS <span class="req">*</span></label>
+      <input type="text" id="f-yrs" placeholder="e.g. 3 years">
+      <div class="error-msg" id="err-yrs">Please enter how long you have been here.</div>
+    </div>
+  </div>
+  <div class="nav">
+    <span class="spacer"></span>
+    <button class="btn primary" onclick="goTo(1)">Next &rarr;</button>
+  </div>
+</div>
+
+<!-- ── STEP 1: Work Skills ───────────────────────────────────────────────── -->
+<div class="step card" id="step-1">
+  <div class="step-num">Step 2 of 5</div>
+  <h2>Your day-to-day work skills</h2>
+  <p class="step-desc">Rate how confident you are with each type of work. <strong>1</strong> = never done it &nbsp;&bull;&nbsp; <strong>5</strong> = expert, could teach others. Be honest — all skill levels are valuable.</p>
+  <div class="legend">
+    <span class="lchip" style="background:#FBDDD3;border-color:#E05A3A;color:#7B2D14"><strong>1</strong> Never done it</span>
+    <span class="lchip" style="background:#FDE9BE;border-color:#E8973A;color:#6B3A08"><strong>2</strong> Heard of it / seen it</span>
+    <span class="lchip" style="background:#DBEEFF;border-color:#2E75B6;color:#0C3E6B"><strong>3</strong> Can do it independently</span>
+    <span class="lchip" style="background:#C8EEE0;border-color:#27AE8F;color:#0A4A38"><strong>4</strong> Do it well / confidently</span>
+    <span class="lchip" style="background:#D4EEC2;border-color:#3B8B2A;color:#1E4D10"><strong>5</strong> Expert / could train others</span>
+  </div>
+  <div id="skills-1"></div>
+  <div class="nav">
+    <button class="btn" onclick="goTo(0)">&larr; Back</button>
+    <span class="spacer"></span>
+    <button class="btn primary" onclick="goTo(2)">Next &rarr;</button>
+  </div>
+</div>
+
+<!-- ── STEP 2: Systems & Tools ──────────────────────────────────────────── -->
+<div class="step card" id="step-2">
+  <div class="step-num">Step 3 of 5</div>
+  <h2>Systems &amp; tools you have worked with</h2>
+  <p class="step-desc">Rate your experience with each system or tool type. It is completely fine to rate 1 for things you have never touched.</p>
+  <div class="legend">
+    <span class="lchip" style="background:#FBDDD3;border-color:#E05A3A;color:#7B2D14"><strong>1</strong> Never used it</span>
+    <span class="lchip" style="background:#FDE9BE;border-color:#E8973A;color:#6B3A08"><strong>2</strong> Seen it / basic familiarity</span>
+    <span class="lchip" style="background:#DBEEFF;border-color:#2E75B6;color:#0C3E6B"><strong>3</strong> Used it on my own</span>
+    <span class="lchip" style="background:#C8EEE0;border-color:#27AE8F;color:#0A4A38"><strong>4</strong> Proficient / go-to person</span>
+    <span class="lchip" style="background:#D4EEC2;border-color:#3B8B2A;color:#1E4D10"><strong>5</strong> Expert / administered it</span>
+  </div>
+  <div id="skills-2"></div>
+  <div class="nav">
+    <button class="btn" onclick="goTo(1)">&larr; Back</button>
+    <span class="spacer"></span>
+    <button class="btn primary" onclick="goTo(3)">Next &rarr;</button>
+  </div>
+</div>
+
+<!-- ── STEP 3: Learning & Growth ─────────────────────────────────────────── -->
+<div class="step card" id="step-3">
+  <div class="step-num">Step 4 of 5</div>
+  <h2>Learning &amp; growth interests</h2>
+  <p class="step-desc">This section is about where you <em>want</em> to go, not where you already are. Your answers help leadership build the right opportunities for you. <strong>There are no wrong answers.</strong></p>
+
+  <div class="field">
+    <label>How open are you to learning new skills for a new or expanded role? <span class="required-flag">*</span></label>
+    <div class="open-grid">
+      <div class="open-opt"><input type="radio" name="learn_open" id="lo1" value="1"><label for="lo1"><span class="open-dot"></span>1 — Not open right now &mdash; I prefer to stay in my current work</label></div>
+      <div class="open-opt"><input type="radio" name="learn_open" id="lo2" value="2"><label for="lo2"><span class="open-dot"></span>2 — Somewhat open &mdash; willing to grow if the fit is right</label></div>
+      <div class="open-opt"><input type="radio" name="learn_open" id="lo3" value="3"><label for="lo3"><span class="open-dot"></span>3 — Open and willing &mdash; comfortable taking on new responsibilities</label></div>
+      <div class="open-opt"><input type="radio" name="learn_open" id="lo4" value="4"><label for="lo4"><span class="open-dot"></span>4 — Actively motivated &mdash; I am looking to grow into something new</label></div>
+      <div class="open-opt"><input type="radio" name="learn_open" id="lo5" value="5"><label for="lo5"><span class="open-dot"></span>5 — Eager &mdash; career growth is my top priority right now</label></div>
+    </div>
+    <div class="error-msg" id="err-open">Please select an option.</div>
+  </div>
+
+  <div class="field">
+    <label>Rate your interest in each role area below <span class="required-flag">*</span></label>
+    <p style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.5">Even if you have no experience in an area, rate how interested you would be in working there. <strong>1 = no interest at all &nbsp;&bull;&nbsp; 5 = very excited about this.</strong></p>
+    <div class="legend" style="margin-bottom:12px">
+      <span class="lchip" style="background:#FBDDD3;border-color:#E05A3A;color:#7B2D14"><strong>1</strong> No interest</span>
+      <span class="lchip" style="background:#FDE9BE;border-color:#E8973A;color:#6B3A08"><strong>2</strong> Mild interest</span>
+      <span class="lchip" style="background:#DBEEFF;border-color:#2E75B6;color:#0C3E6B"><strong>3</strong> Moderately interested</span>
+      <span class="lchip" style="background:#C8EEE0;border-color:#27AE8F;color:#0A4A38"><strong>4</strong> Very interested</span>
+      <span class="lchip" style="background:#D4EEC2;border-color:#3B8B2A;color:#1E4D10"><strong>5</strong> This is a top priority for me</span>
+    </div>
+    <div class="rating-labels" style="justify-content:flex-end;margin-bottom:4px">
+      <div class="rating-label-item">None</div><div class="rating-label-item">Mild</div>
+      <div class="rating-label-item">Mod.</div><div class="rating-label-item">High</div>
+      <div class="rating-label-item">Top</div>
+    </div>
+    <div id="learn-list"></div>
+    <div class="error-msg" id="err-learn-areas">Please rate all interest areas before continuing.</div>
+  </div>
+
+  <div class="field">
+    <label>In your own words — what kind of work do you most want to do next? <span class="required-flag">*</span></label>
+    <textarea id="f-learn-detail" placeholder="Example: I have always enjoyed working directly with program teams to solve problems. I would love a role where I own a business process or product area end-to-end. I am also curious about project management and would like more exposure to formal PM tools.&#10;&#10;Even a few sentences helps — leadership reads every response."></textarea>
+    <div class="field-hint">Advocate for yourself here. Leadership will use this to look for the right fit.</div>
+    <div class="error-msg" id="err-learn">Please share a few words about what interests you.</div>
+  </div>
+
+  <div class="field">
+    <label>Are there certifications, courses, or skills you are already working on? <span class="req">*</span></label>
+    <textarea id="f-developing" placeholder="e.g. I completed a PMP prep course last year. I am taking an online course on Medicaid policy. I am working toward my Six Sigma Green Belt."></textarea>
+    <div class="error-msg" id="err-developing">Please share what you are currently developing.</div>
+  </div>
+
+  <div class="nav">
+    <button class="btn" onclick="goTo(2)">&larr; Back</button>
+    <span class="spacer"></span>
+    <button class="btn primary" onclick="goTo(4)">Next &rarr;</button>
+  </div>
+</div>
+
+<!-- ── STEP 4: Anything Else ──────────────────────────────────────────────── -->
+<div class="step card" id="step-4">
+  <div class="step-num">Step 5 of 5</div>
+  <h2>A few more questions</h2>
+  <p class="step-desc">Help leadership get a fuller picture. All fields are required.</p>
+
+  <div class="field">
+    <label>What are you best at in your current role? <span class="req">*</span></label>
+    <textarea id="f-strength" placeholder="What work are you most confident in? What do people come to you for? What would fall apart if you were not here?"></textarea>
+    <div class="error-msg" id="err-strength">Please share what you are best at.</div>
+  </div>
+
+  <div class="field">
+    <label>Is there a specific role, area, or type of work you would most like to be considered for? <span class="req">*</span></label>
+    <textarea id="f-target" placeholder="You do not have to name an exact title — describing the kind of work is fine. e.g. &quot;I would love to own a product area as a business partner&quot; or &quot;I am interested in anything in the PMO track.&quot;"></textarea>
+    <div class="error-msg" id="err-target">Please share what you would like to be considered for.</div>
+  </div>
+
+  <div class="field">
+    <label>Anything else leadership should know? <span class="req">*</span></label>
+    <textarea id="f-notes" placeholder="Certifications, availability, constraints, past experience outside this role, or anything else you want on the record."></textarea>
+    <div class="error-msg" id="err-notes">Please add any additional notes.</div>
+  </div>
+
+  <div class="nav">
+    <button class="btn" onclick="goTo(3)">&larr; Back</button>
+    <span class="spacer"></span>
+    <button class="btn primary" onclick="goTo(5)">Submit PathFinder &rarr;</button>
+  </div>
+</div>
+
+<!-- ── STEP 5: Done ───────────────────────────────────────────────────────── -->
+<div class="step card" id="step-5">
+  <h2>You are all set!</h2>
+  <div class="completion-icon">&#10003;</div>
+  <p style="font-size:14px;color:#333;margin-bottom:18px;line-height:1.6">Your PathFinder has been packaged below. Copy your code and submit it using the link your manager provided.</p>
+  <div style="background:#F4F8FC;border:1.5px solid #DBEEFF;border-radius:8px;padding:16px 18px;margin-bottom:14px">
+    <div style="font-size:13px;font-weight:700;color:#1F4E79;margin-bottom:8px">&#9312; Copy your submission code</div>
+    <div class="output-box" id="output-box"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn primary" onclick="copyCode()" id="copy-btn">Copy my submission code</button>
+      <button class="btn" onclick="goTo(0)">Start over</button>
+    </div>
+  </div>
+  <div style="background:#EBF3FC;border:1px solid #B5D4F4;border-radius:7px;padding:14px 16px;font-size:13px;color:#0C447C;line-height:1.7;margin-top:14px">
+    <strong>Your responses are private.</strong> The code below cannot be read without the leadership decoder tool — your answers are only visible to designated reviewers in the EPSS organization.
+  </div>
+</div>
+
+</div><!-- /shell -->
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// SKILLS  — 43 total (Step 1: 20 work skills, Step 2: 23 systems/tools)
+// IDs map position-by-position to the submission code — do not reorder
+// ═══════════════════════════════════════════════════════════════════════════
+const SKILLS = [
+  // ────────────────────────────────────────────────────────────────────────
+  // STEP 1 — Day-to-day work skills (20)
+  // ────────────────────────────────────────────────────────────────────────
+  { step:1, cat:"Operations & Program Management", items:[
+    { id:"vendor_mgmt",
+      name:"Vendor and contract management",
+      plain:"Overseeing outside vendors — tracking contracts, monitoring performance, resolving issues, and ensuring deliverables are met",
+      examples:"Contract tracking, SLA monitoring, vendor scorecards, Medicaid vendor oversight (e.g. Maximus, DXC, Gainwell)" },
+    { id:"procurement_admin",
+      name:"Procurement and purchasing administration",
+      plain:"Processing purchase requests, maintaining procurement records, and following state purchasing rules",
+      examples:"State procurement forms, purchase order tracking, MMIS vendor procurement, contract renewals" },
+    { id:"project_coord",
+      name:"Project coordination and task tracking",
+      plain:"Keeping projects on track — maintaining schedules, documenting action items, running status meetings, and following up on deliverables",
+      examples:"Project plans, action logs, RAID logs, milestone tracking, workstream coordination across multiple teams" },
+    { id:"pm_formal",
+      name:"Formal project management (PMO-level)",
+      plain:"Managing a project end-to-end using structured methodology — scope, schedule, budget, risk, and stakeholder reporting",
+      examples:"Full project lifecycle management, PMO governance, PMP-style documentation, earned value, integrated master schedules" },
+    { id:"portfolio_mgmt",
+      name:"Portfolio and strategic work planning",
+      plain:"Managing a collection of projects or initiatives — prioritizing work, tracking interdependencies, and reporting to leadership",
+      examples:"Strategic portfolio plans, roadmaps, capacity planning, project intake processes, OIT portfolio reporting" },
+  ]},
+  { step:1, cat:"Business Analysis & Process", items:[
+    { id:"requirements",
+      name:"Gathering and documenting business requirements",
+      plain:"Working with program staff to understand what they need from a system or process, then writing it down clearly enough for developers or vendors to build it",
+      examples:"BRDs (Business Requirements Documents), use cases, user stories, functional specs, gap analysis, stakeholder interviews" },
+    { id:"process_mapping",
+      name:"Mapping and analyzing business processes",
+      plain:"Diagramming how work flows — identifying steps, handoffs, decision points, pain points, and opportunities to improve",
+      examples:"As-is / to-be process maps, swimlane diagrams, SIPOC analysis, process reengineering for Medicaid operations" },
+    { id:"qa_testing",
+      name:"Quality assurance and user acceptance testing (UAT)",
+      plain:"Verifying that a system or process works correctly before it goes live — creating test cases, executing tests, logging defects, and tracking resolution",
+      examples:"UAT scripts, defect logs, test cycles in MMIS or GAMMIS, regression testing, sign-off documentation" },
+    { id:"policy_analysis",
+      name:"Policy research and regulatory analysis",
+      plain:"Reading and interpreting federal or state policies, identifying what they require, and translating requirements into operational guidance",
+      examples:"CMS federal guidance, state Medicaid rules, APD policy review, interpreting 42 CFR requirements for program staff" },
+    { id:"data_reporting",
+      name:"Data analysis, reporting, and dashboard creation",
+      plain:"Pulling data together from multiple sources and turning it into clear reports, charts, or dashboards that help leadership make decisions",
+      examples:"Excel pivot tables, Power BI dashboards, Tableau reports, SQL queries, performance metrics, MES module reporting" },
+  ]},
+  { step:1, cat:"Communications, Training & Knowledge", items:[
+    { id:"sop_writing",
+      name:"Writing standard operating procedures (SOPs) and process guides",
+      plain:"Creating clear, step-by-step documentation that staff can follow to do their jobs consistently",
+      examples:"Operations manuals, desk procedures, knowledge articles, how-to guides, MMIS or GAMMIS workflow documentation" },
+    { id:"kb_mgmt",
+      name:"Building and managing a knowledge base",
+      plain:"Organizing reference information so it stays current, easy to find, and actually gets used — not just filed away",
+      examples:"SharePoint knowledge sites, intranet wikis, FAQ management, content lifecycle reviews, taxonomy design" },
+    { id:"training_design",
+      name:"Designing and developing training materials",
+      plain:"Creating the actual content people learn from — job aids, slide decks, e-learning modules, exercises, and assessments",
+      examples:"Instructor-led training decks, quick reference cards, e-learning modules (Articulate, Captivate), MMIS user training" },
+    { id:"training_delivery",
+      name:"Facilitating and delivering training",
+      plain:"Standing in front of a room (or a screen) and teaching people — keeping them engaged, handling questions, and making sure learning sticks",
+      examples:"Instructor-led or virtual facilitation, train-the-trainer sessions, new hire onboarding, MMIS end-user training rollouts" },
+    { id:"comms_writing",
+      name:"Writing stakeholder communications and announcements",
+      plain:"Crafting messages, emails, briefings, or announcements for different audiences — from frontline staff to executive leadership",
+      examples:"Release communications, provider notices, leadership briefings, change management messaging, translation-ready content" },
+    { id:"ocm",
+      name:"Organizational change management (OCM)",
+      plain:"Helping people adapt to major changes — assessing impact, planning communication and training, managing resistance, and measuring adoption",
+      examples:"Change impact assessments, stakeholder analysis, OCM plans, readiness surveys, adoption metrics for system go-lives" },
+  ]},
+  { step:1, cat:"Federal Programs & Compliance", items:[
+    { id:"cms_cert",
+      name:"Federal certification and outcomes reporting (CMS)",
+      plain:"Preparing the documentation, evidence packages, and reports that support federal Medicaid certifications or demonstrate compliance with CMS requirements",
+      examples:"MMIS certification submissions, MECT checklists, CMS outcomes documentation, federal compliance matrices, APD reporting" },
+    { id:"medicaid_ops",
+      name:"Medicaid program operations knowledge",
+      plain:"Understanding how the Medicaid program works — eligibility, enrollment, claims, benefits, and how those tie back to IT systems",
+      examples:"Member enrollment, claims adjudication, provider management, eligibility determinations, benefit plan configuration in MMIS" },
+    { id:"compliance_tracking",
+      name:"Regulatory compliance tracking and audit readiness",
+      plain:"Maintaining evidence and documentation that proves the organization is meeting legal, regulatory, or contractual obligations",
+      examples:"Compliance matrices, audit evidence packages, corrective action plans, regulatory gap assessments, HIPAA compliance tracking" },
+    { id:"apd_reporting",
+      name:"APD / federal funding documentation",
+      plain:"Preparing or reviewing the planning and reporting documents that support federal IT funding for Medicaid systems",
+      examples:"APD (Advance Planning Documents), IAPD/PAPD preparation, cost allocation narratives, CMS prior approval submissions" },
+  ]},
+
+  // ────────────────────────────────────────────────────────────────────────
+  // STEP 2 — Systems & tools (23)
+  // ────────────────────────────────────────────────────────────────────────
+  { step:2, cat:"Medicaid & State Systems", items:[
+    { id:"mmis",
+      name:"MMIS — Medicaid Management Information System",
+      plain:"Working in or supporting the core system that processes Medicaid claims, eligibility, and benefits",
+      examples:"MMIS operations, module configuration, module testing, claims adjudication support, benefit plan setup" },
+    { id:"gainwell_sys",
+      name:"Gainwell / legacy system platforms",
+      plain:"Working with the systems managed by Gainwell or the legacy platforms they support for DCH",
+      examples:"Legacy MMIS modules, Gainwell-managed environments, financial management systems, pharmacy benefits platform" },
+    { id:"edi_hipaa",
+      name:"EDI and HIPAA transaction processing",
+      plain:"Sending, receiving, or troubleshooting standardized electronic health data files between trading partners",
+      examples:"EDI 837 (claims), 835 (remittance), 270/271 (eligibility), X12 transactions, clearinghouse connectivity, trading partner onboarding" },
+    { id:"gammis",
+      name:"GAMMIS — Georgia Medicaid Management system",
+      plain:"Working in or supporting the GAMMIS platform for Georgia Medicaid operations",
+      examples:"GAMMIS module testing, configuration, user support, integration testing, data validation" },
+    { id:"gcp_mods",
+      name:"Georgia Care Connect / GCC module systems",
+      plain:"Supporting the care coordination platform modules used across the GCC program",
+      examples:"GCC portal, member management modules, care coordination workflows, module testing and deployment" },
+  ]},
+  { step:2, cat:"Program & Project Tools", items:[
+    { id:"pm_tools",
+      name:"Project management platforms",
+      plain:"Using software to track tasks, timelines, and team progress on projects",
+      examples:"Microsoft Project, Smartsheet, Jira, Azure DevOps, ServiceNow PPM, SharePoint task lists" },
+    { id:"sharepoint",
+      name:"SharePoint — sites, libraries, and document management",
+      plain:"Building or managing SharePoint environments for document storage, collaboration, and knowledge sharing",
+      examples:"SharePoint site design, document library structure, permissions management, version control, intranet content pages" },
+    { id:"power_platform",
+      name:"Microsoft Power Platform (Power Apps / Power Automate / Power BI)",
+      plain:"Building simple apps, automated workflows, or data dashboards without traditional coding",
+      examples:"Power Apps forms, Power Automate approval flows, Power BI dashboards, connecting to SharePoint or Excel data" },
+    { id:"itsm_tools",
+      name:"IT service management tools (ServiceNow, helpdesk systems)",
+      plain:"Using ticketing and workflow tools to manage IT requests, incidents, changes, and service requests",
+      examples:"ServiceNow tickets, change requests, incident tracking, service catalog items, CMDB entries" },
+  ]},
+  { step:2, cat:"Data & Reporting Tools", items:[
+    { id:"excel_advanced",
+      name:"Advanced Excel (pivot tables, formulas, data modeling)",
+      plain:"Going beyond basic spreadsheets — using Excel's more powerful features to analyze data, build models, and produce reports",
+      examples:"VLOOKUP/INDEX MATCH, pivot tables, Power Query, data validation, conditional formatting for reporting" },
+    { id:"sql_data",
+      name:"SQL — querying databases",
+      plain:"Writing queries to pull specific data out of a database for analysis or reporting",
+      examples:"SELECT statements, joins, aggregations, running queries against MMIS or state data warehouses" },
+    { id:"bi_tools",
+      name:"Business intelligence and visualization tools",
+      plain:"Using software to create charts, dashboards, and visual reports from data",
+      examples:"Power BI, Tableau, Cognos, SSRS, data visualization for executive or program reporting" },
+  ]},
+  { step:2, cat:"Content & Learning Systems", items:[
+    { id:"lms",
+      name:"Learning management system (LMS)",
+      plain:"Using or administering an online platform to deliver, track, and report on training",
+      examples:"Course publishing, learner enrollment, completion tracking, curriculum management in Cornerstone, SumTotal, or similar" },
+    { id:"elearning_tools",
+      name:"E-learning authoring tools",
+      plain:"Building interactive online training modules",
+      examples:"Articulate Storyline, Articulate Rise, Captivate, creating SCORM-compliant content for LMS delivery" },
+    { id:"doc_mgmt",
+      name:"Document management systems beyond SharePoint",
+      plain:"Platforms designed specifically for document control, version history, and records retention",
+      examples:"OpenText, M-Files, DocuSign, document metadata management, retention policies, records disposition" },
+  ]},
+  { step:2, cat:"Identity, Security & IT Operations", items:[
+    { id:"user_mgmt",
+      name:"User account and access management",
+      plain:"Creating, modifying, or removing user accounts and controlling what each person can see or do in a system",
+      examples:"Active Directory, provisioning/deprovisioning, role-based access control, MMIS user administration" },
+    { id:"iam_systems",
+      name:"Identity and access management platforms (IAM/SSO/MFA)",
+      plain:"Tools that manage how users authenticate into systems — single sign-on, multi-factor authentication, and identity governance",
+      examples:"Okta, Azure Active Directory, Ping Identity, SSO configuration, MFA rollouts" },
+    { id:"change_mgmt_it",
+      name:"IT change management processes",
+      plain:"Following the formal process for reviewing, approving, and implementing changes to IT systems with minimal disruption",
+      examples:"Change advisory board (CAB), change request documentation, release coordination, ServiceNow change management" },
+    { id:"incident_mgmt",
+      name:"IT incident and problem management",
+      plain:"When something breaks, knowing how to log it, escalate it, and track it through to resolution",
+      examples:"P1/P2 incident bridges, root cause analysis, corrective actions, ServiceNow incident tickets, SLA tracking" },
+    { id:"dual_env",
+      name:"Parallel / dual-system operations and migrations",
+      plain:"Supporting work that runs across two systems at the same time — typically during a system replacement or major upgrade",
+      examples:"Legacy and new system parallel runs, data migration support, cutover planning, post-go-live stabilization" },
+    { id:"cutover_support",
+      name:"System go-live and cutover support",
+      plain:"Being part of the team that flips the switch when a new system launches — from planning through first production day",
+      examples:"Go-live readiness checklists, cutover runbooks, hypercare support, post-deployment defect triage" },
+  ]},
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEARNING INTEREST AREAS — mapped to actual EPSS roles
+// ═══════════════════════════════════════════════════════════════════════════
+const LEARN_AREAS = [
+  // Ops branch
+  { id:"la_vendor",    label:"Vendor and contract oversight",
+    desc:"Managing relationships with M&O vendors, tracking SLAs, and ensuring deliverables — e.g. Vendor Performance & Contract Admin Manager" },
+  { id:"la_boc",       label:"Business operations and call center management",
+    desc:"Overseeing day-to-day operational support and vendor call centers — e.g. Business Operations Center (BOC) Manager" },
+  { id:"la_compliance",label:"Medicaid compliance, APD, and regulatory reporting",
+    desc:"Federal certification, APD documentation, audit readiness — e.g. Medicaid Compliance & Governance APD Manager, Operational Reporting & Certifications Lead" },
+  { id:"la_ocm",       label:"Organizational change management and communications",
+    desc:"OCM strategy, stakeholder communications, training coordination for system changes — e.g. OCM Manager, Comms Specialist" },
+  { id:"la_training",  label:"Training design and delivery",
+    desc:"Building and delivering training programs for system rollouts or operations — e.g. Training Specialist" },
+  { id:"la_kb",        label:"Knowledge base and content management",
+    desc:"Building and maintaining a structured knowledge system for the organization — e.g. Knowledge-base Analyst" },
+  // PMO / Shared Services
+  { id:"la_pm",        label:"Project management (PMO track)",
+    desc:"Managing projects end-to-end in the PMO — e.g. Project Manager, MES PMO Manager" },
+  { id:"la_portfolio", label:"Strategic portfolio management",
+    desc:"Managing a portfolio of projects or initiatives, prioritizing across workstreams — e.g. Strategic Portfolio Mgmt Lead" },
+  { id:"la_ba",        label:"Business analysis and requirements",
+    desc:"Gathering and documenting what program teams need from IT systems — e.g. Business Analyst (any level)" },
+  { id:"la_process",   label:"Business process design and governance",
+    desc:"Mapping, analyzing, and improving operational processes — e.g. Requirements & Bus. Process Design Manager, Bus. Process Governance & Standards Specialist" },
+  { id:"la_policy",    label:"Policy analysis and federal program knowledge",
+    desc:"Interpreting CMS guidance and federal rules to drive operational decisions — e.g. Policy Analyst" },
+  // Product / IT Business Partner
+  { id:"la_pmo_prod",  label:"Product management and module ownership",
+    desc:"Owning a product or module area — backlog, roadmap, stakeholder engagement — e.g. Product Management Office Manager" },
+  { id:"la_itbp",      label:"IT Business Partner role",
+    desc:"Serving as the primary IT liaison for a business program area — e.g. IT Business Partner (Shared Services, Claims, Enrollment, Provider)" },
+  { id:"la_content",   label:"Enterprise content and portal management",
+    desc:"Managing web portals, member-facing content, and enterprise content systems — e.g. Enterprise Content Mgmt Lead, Portal Lead" },
+  { id:"la_lms_int",   label:"Learning management system administration",
+    desc:"Administering the LMS, publishing courses, managing completions — e.g. LMS Lead" },
+  // Module / program leads
+  { id:"la_claims",    label:"Claims processing and financial management",
+    desc:"Supporting Medicaid claims adjudication and financial reconciliation — e.g. Claims Processing & Financial Management Lead" },
+  { id:"la_pharmacy",  label:"Pharmacy benefits management",
+    desc:"Supporting pharmacy benefit programs, PBM operations, and related systems — e.g. Pharmacy Benefits Lead" },
+  { id:"la_enrollment",label:"Member enrollment and case management systems",
+    desc:"Supporting member enrollment, eligibility, and case management workflows — e.g. Member Enrollment Services Lead, Case Management Lead" },
+  { id:"la_provider",  label:"Provider services and management",
+    desc:"Supporting provider enrollment, credentialing, and provider-facing services — e.g. Provider Services Lead" },
+  { id:"la_evv",       label:"Electronic Visit Verification (EVV)",
+    desc:"Supporting EVV operations, data, and compliance — e.g. EVV Lead" },
+  { id:"la_gammis",    label:"GAMMIS / legacy system support",
+    desc:"Supporting legacy Medicaid system operations and the GAMMIS platform — e.g. GAMMIS Support Team" },
+  { id:"la_perf",      label:"Performance management and M&O metrics",
+    desc:"Tracking, analyzing, and reporting on operational performance — e.g. Performance Mgmt Lead, Performance Mgmt Analyst" },
+  { id:"la_data",      label:"Data reporting and analytics",
+    desc:"Building reports, dashboards, and data products for program and leadership use — e.g. Reporting & Analytics roles" },
+];
+
+const ratings = {};
+const learnAreaRatings = {};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════════════
+function getAllSkills() {
+  return SKILLS.flatMap(s => s.items);
+}
+
+function renderSkills(stepIdx) {
+  const sections = SKILLS.filter(s => s.step === stepIdx);
+  const el = document.getElementById('skills-' + stepIdx);
+  const headerHtml = `<div class="rating-labels">
+    ${['Never','Seen','Can do','Good','Expert'].map(l=>`<div class="rating-label-item">${l}</div>`).join('')}
+  </div>`;
+  let html = headerHtml;
+  sections.forEach(sec => {
+    html += `<div class="skill-group-title">${sec.cat}</div>`;
+    html += sec.items.map(skill => `
+      <div class="skill-row" data-id="${skill.id}">
+        <div class="skill-text">
+          <div class="skill-name">${skill.name}</div>
+          <div class="skill-plain">${skill.plain}</div>
+          <div class="skill-examples">e.g. ${skill.examples}</div>
+        </div>
+        <div class="rating-group">
+          ${[1,2,3,4,5].map(n=>`
+            <input type="radio" class="r${n}" name="${skill.id}" id="${skill.id}_${n}" value="${n}"
+              ${ratings[skill.id]===n?'checked':''}
+              onchange="ratings['${skill.id}']=${n};const r=this.closest('.skill-row');if(r){r.classList.remove('unrated');r.querySelector('.skill-name').style.color='';}">
+            <label for="${skill.id}_${n}">${n}</label>
+          `).join('')}
+        </div>
+      </div>`).join('');
+  });
+  el.innerHTML = html;
+}
+
+function renderLearnAreas() {
+  const list = document.getElementById('learn-list');
+  if (!list) return;
+  list.innerHTML = LEARN_AREAS.map(a => `
+    <div class="learn-area-row" data-la="${a.id}">
+      <div class="learn-area-header">
+        <div class="learn-area-text">
+          <div class="learn-area-name">${a.label}</div>
+          <div class="learn-area-desc">${a.desc}</div>
+        </div>
+        <div class="learn-rating-group">
+          ${[1,2,3,4,5].map(n=>`
+            <input type="radio" class="lr${n}" name="la_${a.id}" id="la_${a.id}_${n}" value="${n}"
+              ${learnAreaRatings[a.id]===n?'checked':''}
+              onchange="learnAreaRatings['${a.id}']=${n};this.closest('.learn-area-row').classList.remove('unrated-learn');this.closest('.learn-area-row').querySelector('.learn-area-name').style.color='';">
+            <label for="la_${a.id}_${n}">${n}</label>
+          `).join('')}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════════════════
+function showErr(id, show) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = show ? 'block' : 'none';
+}
+
+function validateSkillStep(stepIdx) {
+  const allItems = SKILLS.filter(s => s.step === stepIdx).flatMap(s => s.items);
+  const unrated = allItems.filter(s => ratings[s.id] === undefined);
+  allItems.forEach(skill => {
+    const row = document.querySelector(`.skill-row[data-id="${skill.id}"]`);
+    if (row) row.classList.toggle('unrated', ratings[skill.id] === undefined);
+  });
+  let errEl = document.getElementById('err-skills-' + stepIdx);
+  if (unrated.length > 0) {
+    if (!errEl) {
+      errEl = document.createElement('div');
+      errEl.id = 'err-skills-' + stepIdx;
+      errEl.className = 'error-msg';
+      errEl.style.cssText = 'display:block;margin-top:14px;font-size:13px;';
+      document.getElementById('skills-' + stepIdx).after(errEl);
+    }
+    errEl.style.display = 'block';
+    errEl.textContent = `Please rate all ${unrated.length} remaining item${unrated.length>1?'s':''} before continuing. Items highlighted in red need a rating.`;
+    document.querySelector('.skill-row.unrated')?.scrollIntoView({behavior:'smooth',block:'center'});
+    return false;
+  }
+  if (errEl) errEl.style.display = 'none';
+  return true;
+}
+
+function goTo(idx) {
+  if (idx === 1) {
+    const name  = document.getElementById('f-name').value.trim();
+    const title = document.getElementById('f-title').value.trim();
+    const team  = document.getElementById('f-team').value;
+    const yrs   = document.getElementById('f-yrs').value.trim();
+    let ok = true;
+    showErr('err-name',  !name);  if (!name)  ok = false;
+    showErr('err-title', !title); if (!title) ok = false;
+    showErr('err-team',  !team);  if (!team)  ok = false;
+    showErr('err-yrs',   !yrs);   if (!yrs)   ok = false;
+    if (!ok) return;
+  }
+  if (idx === 2 && !validateSkillStep(1)) return;
+  if (idx === 3 && !validateSkillStep(2)) return;
+  if (idx === 4) {
+    const open   = document.querySelector('input[name="learn_open"]:checked');
+    const detail = document.getElementById('f-learn-detail').value.trim();
+    const dev    = document.getElementById('f-developing').value.trim();
+    let ok = true;
+    showErr('err-open', !open); if (!open) ok = false;
+    const unratedAreas = LEARN_AREAS.filter(a => learnAreaRatings[a.id] === undefined);
+    document.querySelectorAll('.learn-area-row').forEach(row => {
+      row.classList.toggle('unrated-learn', learnAreaRatings[row.dataset.la] === undefined);
+    });
+    if (unratedAreas.length > 0) {
+      const errEl = document.getElementById('err-learn-areas');
+      if (errEl){ errEl.style.display='block'; errEl.textContent=`Please rate all ${unratedAreas.length} remaining area${unratedAreas.length>1?'s':''}.`; }
+      document.querySelector('.learn-area-row.unrated-learn')?.scrollIntoView({behavior:'smooth',block:'center'});
+      ok = false;
+    } else {
+      const errEl = document.getElementById('err-learn-areas');
+      if (errEl) errEl.style.display='none';
+    }
+    showErr('err-learn', !detail); if (!detail) ok = false;
+    showErr('err-developing', !dev); if (!dev) ok = false;
+    if (!ok) return;
+  }
+  if (idx === 5) {
+    const strength = document.getElementById('f-strength').value.trim();
+    const target   = document.getElementById('f-target').value.trim();
+    const notes    = document.getElementById('f-notes').value.trim();
+    let ok = true;
+    showErr('err-strength', !strength); if (!strength) ok = false;
+    showErr('err-target',   !target);   if (!target)   ok = false;
+    showErr('err-notes',    !notes);    if (!notes)    ok = false;
+    if (!ok) return;
+    generateOutput();
+    return;
+  }
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + idx).classList.add('active');
+  const pct = Math.round((idx / 5) * 100);
+  document.getElementById('pbar').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `Step ${idx+1} of 5`;
+  if (idx === 1 || idx === 2) renderSkills(idx);
+  if (idx === 3) renderLearnAreas();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GENERATE SUBMISSION CODE
+// ═══════════════════════════════════════════════════════════════════════════
+function generateOutput() {
+  const allSkillIds = getAllSkills().map(s => s.id);
+  const payload = {
+    v:  4,
+    n:  document.getElementById('f-name').value.trim()         || 'Unknown',
+    t:  document.getElementById('f-title').value.trim()        || '',
+    tm: document.getElementById('f-team').value                || '',
+    y:  document.getElementById('f-yrs').value.trim()          || '',
+    r:  allSkillIds.map(id => ratings[id] || 0).join(''),
+    s:  document.getElementById('f-strength').value.trim()     || '',
+    tg: document.getElementById('f-target').value.trim()       || '',
+    x:  document.getElementById('f-notes').value.trim()        || '',
+    lo: document.querySelector('input[name="learn_open"]:checked')?.value || '',
+    la: LEARN_AREAS.map(a => learnAreaRatings[a.id] || 0).join(''),
+    ld: document.getElementById('f-learn-detail').value.trim() || '',
+    dv: document.getElementById('f-developing').value.trim()   || '',
+    dt: new Date().toLocaleDateString('en-US'),
+  };
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  document.getElementById('output-box').textContent = 'EPSS_PATHFINDER_V4:' + encoded;
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-5').classList.add('active');
+  document.getElementById('pbar').style.width = '100%';
+  document.getElementById('progress-label').textContent = 'Complete';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function copyCode() {
+  const text = document.getElementById('output-box').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy my submission code', 2500);
+  });
+}
+
+renderSkills(1);
+</script>
+</body>
+</html>
