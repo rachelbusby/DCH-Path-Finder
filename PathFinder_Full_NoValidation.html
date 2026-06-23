@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<title>M&O Staff PathFinder</title>
+<style>
+body{font-family:Arial;background:#f4f6f9;margin:0;padding:20px}
+.shell{max-width:720px;margin:auto}
+.card{background:#fff;padding:20px;margin-bottom:15px;border-radius:8px;border:1px solid #ddd}
+.btn{padding:10px 18px;background:#1F4E79;color:#fff;border:none;border-radius:5px;cursor:pointer}
+.step{display:none}
+.step.active{display:block}
+input,textarea{width:100%;padding:8px;margin:6px 0}
+</style>
+</head>
+<body>
+<div class='shell'>
+
+<h2>M&O Staff PathFinder</h2>
+<p>Complete as much or as little as you'd like. No fields are required.</p>
+
+<div id='step-0' class='card step active'>
+<h3>About You</h3>
+<input id='f-name' placeholder='Full Name'>
+<input id='f-title' placeholder='Job Title'>
+<input id='f-team' placeholder='Team'>
+<input id='f-yrs' placeholder='Years'>
+<button class='btn' onclick='goTo(1)'>Next</button>
+</div>
+
+<div id='step-1' class='card step'>
+<h3>Skills</h3>
+<p>Rate anything you want (optional)</p>
+<label><input type='radio' name='s1'>1</label>
+<label><input type='radio' name='s1'>2</label>
+<label><input type='radio' name='s1'>3</label>
+<label><input type='radio' name='s1'>4</label>
+<label><input type='radio' name='s1'>5</label>
+<br><br>
+<button class='btn' onclick='goTo(2)'>Next</button>
+</div>
+
+<div id='step-2' class='card step'>
+<h3>Interests & Growth</h3>
+<textarea placeholder='What type of role or work are you interested in?'></textarea>
+<button class='btn' onclick='goTo(3)'>Next</button>
+</div>
+
+<div id='step-3' class='card step'>
+<h3>Complete</h3>
+<p>You can now host this on GitHub ✅</p>
+</div>
+
+</div>
+
+<script>
+function goTo(step){
+ document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+ document.getElementById('step-'+step).classList.add('active');
+}
+</script>
+
+</body>
+</html>
